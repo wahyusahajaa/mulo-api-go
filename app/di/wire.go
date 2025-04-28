@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/wire"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
-	"github.com/wahyusahajaa/mulo-api-go/app/handler"
-	"github.com/wahyusahajaa/mulo-api-go/app/router"
+	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
+	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 )
 
 type AppContainer struct {
@@ -19,8 +19,8 @@ type AppContainer struct {
 func InitializedApp() (*AppContainer, error) {
 	wire.Build(
 		config.NewConfig,
-		handler.NewHandlers,
-		router.ProviderFiberApp,
+		handlers.NewHandlers,
+		routers.ProviderFiberApp,
 		wire.Struct(new(AppContainer), "*"),
 	)
 

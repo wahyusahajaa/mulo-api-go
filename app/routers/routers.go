@@ -1,11 +1,11 @@
-package router
+package routers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/wahyusahajaa/mulo-api-go/app/handler"
+	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
 )
 
-func ProviderFiberApp(h *handler.Handlers) *fiber.App {
+func ProviderFiberApp(h *handlers.Handlers) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "Mulo Music Streaming",
 	})

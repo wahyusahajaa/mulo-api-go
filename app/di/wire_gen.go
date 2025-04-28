@@ -9,15 +9,15 @@ package di
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
-	"github.com/wahyusahajaa/mulo-api-go/app/handler"
-	"github.com/wahyusahajaa/mulo-api-go/app/router"
+	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
+	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 )
 
 // Injectors from wire.go:
 
 func InitializedApp() (*AppContainer, error) {
-	handlers := handler.NewHandlers()
-	app := router.ProviderFiberApp(handlers)
+	handlersHandlers := handlers.NewHandlers()
+	app := routers.ProviderFiberApp(handlersHandlers)
 	configConfig := config.NewConfig()
 	appContainer := &AppContainer{
 		App:    app,

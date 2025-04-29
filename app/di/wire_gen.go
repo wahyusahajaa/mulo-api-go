@@ -8,17 +8,34 @@ package di
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/wire"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
+	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
+	"github.com/wahyusahajaa/mulo-api-go/app/middlewares"
+	"github.com/wahyusahajaa/mulo-api-go/app/repositories"
 	"github.com/wahyusahajaa/mulo-api-go/app/routers"
+	"github.com/wahyusahajaa/mulo-api-go/app/services"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
 // Injectors from wire.go:
 
 func InitializedApp() (*AppContainer, error) {
-	handlersHandlers := handlers.NewHandlers()
-	app := routers.ProviderFiberApp(handlersHandlers)
 	configConfig := config.NewConfig()
+	db, err := database.NewDB(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	authRepository := repositories.NewAuthRepository(db)
+	authService := services.NewAuthService(authRepository)
+	jwtService := utils.NewJWTService(configConfig)
+	resendService := utils.NewResendService(configConfig)
+	verificationService := utils.NewVerification(authRepository)
+	authHandler := handlers.NewAuthHandler(authService, jwtService, resendService, verificationService)
+	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
+	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware)
+	app := routers.ProviderFiberApp(handlersHandlers)
 	appContainer := &AppContainer{
 		App:    app,
 		Config: configConfig,
@@ -32,3 +49,5 @@ type AppContainer struct {
 	App    *fiber.App
 	Config *config.Config
 }
+
+var authSet = wire.NewSet(utils.NewJWTService, utils.NewResendService, repositories.NewAuthRepository, services.NewAuthService, utils.NewVerification, handlers.NewAuthHandler)

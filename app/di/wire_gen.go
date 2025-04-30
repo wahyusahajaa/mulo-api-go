@@ -16,6 +16,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/repositories"
 	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 	"github.com/wahyusahajaa/mulo-api-go/app/services"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/logger"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -27,15 +28,17 @@ func InitializedApp() (*AppContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	authRepository := repositories.NewAuthRepository(db)
-	authService := services.NewAuthService(authRepository)
+	logrusLogger := logger.NewLogger()
+	authRepository := repositories.NewAuthRepository(db, logrusLogger)
+	authService := services.NewAuthService(authRepository, logrusLogger)
 	jwtService := utils.NewJWTService(configConfig)
 	resendService := utils.NewResendService(configConfig)
 	verificationService := utils.NewVerification(authRepository)
-	authHandler := handlers.NewAuthHandler(authService, jwtService, resendService, verificationService)
+	authHandler := handlers.NewAuthHandler(authService, jwtService, resendService, verificationService, logrusLogger)
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
 	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware)
-	app := routers.ProviderFiberApp(handlersHandlers)
+	v := middlewares.FiberLogger(logrusLogger)
+	app := routers.ProviderFiberApp(handlersHandlers, v)
 	appContainer := &AppContainer{
 		App:    app,
 		Config: configConfig,

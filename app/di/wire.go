@@ -13,6 +13,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/repositories"
 	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 	"github.com/wahyusahajaa/mulo-api-go/app/services"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/logger"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -32,6 +33,8 @@ var authSet = wire.NewSet(
 
 func InitializedApp() (*AppContainer, error) {
 	wire.Build(
+		logger.NewLogger,
+		middlewares.FiberLogger,
 		config.NewConfig,
 		database.NewDB,
 		authSet,

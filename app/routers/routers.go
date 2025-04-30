@@ -5,10 +5,12 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
 )
 
-func ProviderFiberApp(h *handlers.Handlers) *fiber.App {
+func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "Mulo Music Streaming",
 	})
+
+	app.Use(fiberLogger)
 
 	v1 := app.Group("/v1")
 

@@ -11,9 +11,9 @@ type AuthRepository interface {
 	FindUserVerifiedByCode(ctx context.Context, code string) (exists bool, err error)
 	FindUserDuplicateEmail(ctx context.Context, email string) (exists bool, err error)
 	FindUserDuplicateUsername(ctx context.Context, username string) (exists bool, err error)
-	FindUserByEmail(ctx context.Context, email string) (user models.User, err error)
-	StoreVerifyCode(ctx context.Context, userId int, code string) (err error)
-	FindUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (exists bool, err error)
+	FindUserByEmail(ctx context.Context, email string) (user *models.User, err error)
+	StoreUserVerifyCode(ctx context.Context, userId int, code string) (err error)
+	FindUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (userVerified *models.UserVerified, err error)
 	UpdateUserVerifiedAt(ctx context.Context, userId int) (err error)
 }
 
@@ -22,8 +22,8 @@ type AuthService interface {
 	CheckVerificationCode(ctx context.Context, code string) (exists bool, err error)
 	CheckUserDuplicateEmail(ctx context.Context, email string) (exists bool, err error)
 	CheckUserDuplicateUsername(ctx context.Context, username string) (exists bool, err error)
-	GetUserByEmail(ctx context.Context, email string) (user models.User, err error)
-	CreateVerifyCode(ctx context.Context, userId int, code string) (err error)
-	GetUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (exists bool, err error)
+	GetUserByEmail(ctx context.Context, email string) (user *models.User, err error)
+	CreateUserVerifyCode(ctx context.Context, userId int, code string) (err error)
+	GetUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (userVerified *models.UserVerified, err error)
 	UpdateUserVerifiedAt(ctx context.Context, userId int) (err error)
 }

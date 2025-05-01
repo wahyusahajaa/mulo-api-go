@@ -4,21 +4,23 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
 )
 
 type authRepository struct {
-	db *sql.DB
+	db  *sql.DB
+	log *logrus.Logger
 }
 
-func NewAuthRepository(db *database.DB) contracts.AuthRepository {
+func NewAuthRepository(db *database.DB, log *logrus.Logger) contracts.AuthRepository {
 	return &authRepository{
-		db: db.DB,
+		db:  db.DB,
+		log: log,
 	}
 }
 
@@ -26,7 +28,8 @@ func (repo *authRepository) Store(ctx context.Context, fullname, username, email
 	tx, err := repo.db.Begin()
 
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		repo.log.WithError(err).Error("failed to begin transactiion")
+		return errors.New("failed to begin transaction insert users")
 	}
 
 	defer func() {
@@ -45,11 +48,14 @@ func (repo *authRepository) Store(ctx context.Context, fullname, username, email
 	queryInsertVerifyCode := `INSERT INTO user_verified(user_id, code) VALUES($1, $2);`
 
 	if err = tx.QueryRowContext(ctx, queryInsertUser, fullname, username, email, password, "member").Scan(&userId); err != nil {
-		return fmt.Errorf("failed while create user: %w", err)
+		repo.log.WithError(err).Error("failed to query insert users")
+		return errors.New("failed to query insert user")
+
 	}
 
 	if _, err = tx.ExecContext(ctx, queryInsertVerifyCode, userId, code); err != nil {
-		return fmt.Errorf("failed while insert user verify code: %w", err)
+		repo.log.WithError(err).Error("failed to query insert user_verified")
+		return errors.New("failed to query insert user_verified")
 	}
 
 	return nil
@@ -59,6 +65,7 @@ func (repo *authRepository) FindUserVerifiedByCode(ctx context.Context, code str
 	query := `SELECT EXISTS (SELECT 1 FROM user_verified WHERE code = $1)`
 
 	if err := repo.db.QueryRowContext(ctx, query, code).Scan(&exists); err != nil {
+		repo.log.WithError(err).Error("failed to query user_verified")
 		return false, err
 	}
 
@@ -69,6 +76,7 @@ func (repo *authRepository) FindUserDuplicateEmail(ctx context.Context, email st
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`
 
 	if err := repo.db.QueryRowContext(ctx, query, email).Scan(&exists); err != nil {
+		repo.log.WithError(err).Error("failed to query user duplicate email")
 		return false, err
 	}
 
@@ -79,14 +87,16 @@ func (repo *authRepository) FindUserDuplicateUsername(ctx context.Context, usern
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`
 
 	if err := repo.db.QueryRowContext(ctx, query, username).Scan(&exists); err != nil {
+		repo.log.WithError(err).Error("failed to query user duplicate username")
 		return false, err
 	}
 
 	return exists, nil
 }
 
-func (repo *authRepository) FindUserByEmail(ctx context.Context, email string) (user models.User, err error) {
+func (repo *authRepository) FindUserByEmail(ctx context.Context, email string) (user *models.User, err error) {
 	query := `SELECT id, full_name, email, username, password, role, image, email_verified_at FROM users WHERE email = $1`
+	user = &models.User{}
 
 	err = repo.db.QueryRowContext(ctx, query, email).Scan(
 		&user.Id,
@@ -99,31 +109,55 @@ func (repo *authRepository) FindUserByEmail(ctx context.Context, email string) (
 		&user.EmailVerifiedAt,
 	)
 
-	if errors.Is(err, sql.ErrNoRows) {
-		return user, nil
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			repo.log.WithField("email", email).Warn("user not found")
+			return nil, nil
+		}
+
+		repo.log.WithError(err).Error("failed to query user")
+		return nil, err
 	}
 
-	return
+	return user, nil
 }
 
-func (repo *authRepository) StoreVerifyCode(ctx context.Context, userId int, code string) (err error) {
+func (repo *authRepository) StoreUserVerifyCode(ctx context.Context, userId int, code string) (err error) {
 	query := `INSERT INTO user_verified(user_id, code) VALUES($1, $2);`
 
 	if _, err := repo.db.ExecContext(ctx, query, userId, code); err != nil {
+		repo.log.WithError(err).Error("failed to query insert user_verified")
 		return err
 	}
 
 	return nil
 }
 
-func (repo *authRepository) FindUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (exists bool, err error) {
-	query := `SELECT EXISTS (SELECT 1 FROM users u INNER JOIN user_verified uv ON uv.user_id = u.id WHERE u.id = $1 AND uv.code = $2)`
+func (repo *authRepository) FindUserVerifiedByUserIdAndCode(ctx context.Context, userId int, code string) (userVerified *models.UserVerified, err error) {
+	query := `SELECT uv.code, uv.expired_at FROM user_verified uv INNER JOIN users u ON u.id = uv.user_id WHERE uv.user_id = $1 AND uv.code = $2`
 
-	if err := repo.db.QueryRowContext(ctx, query, userId, code).Scan(&exists); err != nil {
-		return false, err
+	userVerified = &models.UserVerified{}
+
+	err = repo.db.QueryRowContext(ctx, query, userId, code).Scan(
+		&userVerified.Code,
+		&userVerified.ExpiredAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			repo.log.WithFields(logrus.Fields{
+				"user_id": userId,
+				"code":    code,
+			}).Warn("user verified not found")
+
+			return nil, nil
+		}
+
+		repo.log.WithError(err).Error("failed to query user_verified")
+		return nil, err
 	}
 
-	return exists, nil
+	return userVerified, nil
 }
 
 func (repo *authRepository) UpdateUserVerifiedAt(ctx context.Context, userId int) (err error) {
@@ -131,6 +165,7 @@ func (repo *authRepository) UpdateUserVerifiedAt(ctx context.Context, userId int
 	currentTime := time.Now()
 
 	if _, err := repo.db.ExecContext(ctx, query, currentTime, userId); err != nil {
+		repo.log.WithError(err).Error("failed to query update users")
 		return err
 	}
 

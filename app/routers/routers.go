@@ -22,6 +22,7 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	authGroup.Post("/login", h.Auth.Login)
 	authGroup.Post("/register", h.Auth.Register)
 	authGroup.Post("/verify-email", h.Middleware.AuthRequired(), h.Auth.VerifyEmail)
+	authGroup.Post("/resend-code", h.Middleware.AuthRequired(), h.Auth.ResendCodeEmailVerification)
 	authGroup.Get("/me", h.Middleware.AuthRequired(), h.Auth.Me)
 
 	return app

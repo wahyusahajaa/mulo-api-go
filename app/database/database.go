@@ -27,7 +27,5 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	fmt.Println("database connected")
-
 	return &DB{db}, nil
 }

@@ -27,7 +27,7 @@ func (m *AuthMiddleware) AuthRequired() fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 		}
 
-		if claims["is_email_verified"].(bool) && c.Path() != "/v1/auth/verify-email" {
+		if !claims["is_email_verified"].(bool) && c.Path() != "/v1/auth/verify-email" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"message": "Email not verified",
 			})

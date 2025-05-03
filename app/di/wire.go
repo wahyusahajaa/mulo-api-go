@@ -37,6 +37,12 @@ var userSet = wire.NewSet(
 	handlers.NewUserHandler,
 )
 
+var artistSet = wire.NewSet(
+	repositories.NewArtistRepository,
+	services.NewArtistService,
+	handlers.NewArtistHandler,
+)
+
 func InitializedApp() (*AppContainer, error) {
 	wire.Build(
 		logger.NewLogger,
@@ -45,6 +51,7 @@ func InitializedApp() (*AppContainer, error) {
 		database.NewDB,
 		authSet,
 		userSet,
+		artistSet,
 		middlewares.NewAuthMiddleware,
 		handlers.NewHandlers,
 		routers.ProviderFiberApp,

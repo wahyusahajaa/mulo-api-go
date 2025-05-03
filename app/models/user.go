@@ -1,6 +1,8 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type User struct {
 	Id              int

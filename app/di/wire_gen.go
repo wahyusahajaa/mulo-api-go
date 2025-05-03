@@ -36,7 +36,10 @@ func InitializedApp() (*AppContainer, error) {
 	verificationService := utils.NewVerification(authRepository)
 	authHandler := handlers.NewAuthHandler(authService, jwtService, resendService, verificationService, logrusLogger)
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
-	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware)
+	userRepository := repositories.NewUserRepository(db, logrusLogger)
+	userService := services.NewUserService(userRepository, logrusLogger)
+	userHandler := handlers.NewUserHandler(userService)
+	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware, userHandler)
 	v := middlewares.FiberLogger(logrusLogger)
 	app := routers.ProviderFiberApp(handlersHandlers, v)
 	appContainer := &AppContainer{
@@ -54,3 +57,5 @@ type AppContainer struct {
 }
 
 var authSet = wire.NewSet(utils.NewJWTService, utils.NewResendService, repositories.NewAuthRepository, services.NewAuthService, utils.NewVerification, handlers.NewAuthHandler)
+
+var userSet = wire.NewSet(repositories.NewUserRepository, services.NewUserService, handlers.NewUserHandler)

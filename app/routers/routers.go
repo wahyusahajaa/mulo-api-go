@@ -19,16 +19,29 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	})
 
 	authGroup := v1.Group("auth")
+	authGroupProtected := authGroup.Use(h.Middleware.AuthRequired())
+	v1Protected := v1.Use(h.Middleware.AuthRequired())
+
+	// Public routes
 	authGroup.Post("/login", h.Auth.Login)
 	authGroup.Post("/register", h.Auth.Register)
-	authGroup.Put("/verify-email", h.Middleware.AuthRequired(), h.Auth.VerifyEmail)
-	authGroup.Post("/resend-code", h.Middleware.AuthRequired(), h.Auth.ResendCodeEmailVerification)
-	authGroup.Get("/profile", h.Middleware.AuthRequired(), h.Auth.Profile)
 
-	v1.Get("/users", h.Middleware.AuthRequired(), h.User.GetUsers)
-	v1.Get("/users/:id", h.Middleware.AuthRequired(), h.User.GetUser)
-	v1.Put("/users/:id", h.Middleware.AuthRequired(), h.User.Update)
-	v1.Delete("/users/:id", h.Middleware.AuthRequired(), h.User.Delete)
+	authGroupProtected.Put("/verify-email", h.Auth.VerifyEmail)
+	authGroupProtected.Post("/resend-code", h.Auth.ResendCodeEmailVerification)
+	authGroupProtected.Get("/profile", h.Auth.Profile)
+
+	// Users endpoint
+	v1Protected.Get("/users", h.User.GetUsers)
+	v1Protected.Get("/users/:id", h.User.GetUser)
+	v1Protected.Put("/users/:id", h.User.Update)
+	v1Protected.Delete("/users/:id", h.User.Delete)
+
+	// Artists endpoint
+	v1Protected.Get("/artists", h.Artist.GetArtists)
+	v1Protected.Get("/artists/:id", h.Artist.GetArtist)
+	v1Protected.Post("/artists", h.Artist.CreateArtist)
+	v1Protected.Put("/artists/:id", h.Artist.UpdateArtist)
+	v1Protected.Delete("/artists/:id", h.Artist.DeleteArtist)
 
 	return app
 }

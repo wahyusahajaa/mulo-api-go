@@ -203,7 +203,7 @@ func (h *AuthHandler) ResendCodeEmailVerification(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) Me(c *fiber.Ctx) error {
+func (h *AuthHandler) Profile(c *fiber.Ctx) error {
 	fullname := c.Locals("full_name")
 
 	return c.JSON(fiber.Map{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
@@ -23,11 +24,42 @@ func NewArtistRepository(db *database.DB, log *logrus.Logger) contracts.ArtistRe
 	}
 }
 
-func (repo *artistRepository) FetchAll(ctx context.Context, pageSize, offset int) (artists []models.Artist, err error) {
+func (repo *artistRepository) FindAll(ctx context.Context, pageSize, offset int) (artists []models.Artist, err error) {
 	query := `SELECT id, name, slug, image FROM artists ORDER BY id DESC LIMIT $1 OFFSET $2`
 	args := []any{pageSize, offset}
 
 	rows, err := repo.db.QueryContext(ctx, query, args...)
+
+	if err != nil {
+		repo.log.WithError(err).Error("failed to query artists")
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		artist := models.Artist{}
+
+		if err := rows.Scan(
+			&artist.Id,
+			&artist.Name,
+			&artist.Slug,
+			&artist.Image,
+		); err != nil {
+			repo.log.WithError(err).Error("failed to scan artist")
+			return nil, err
+		}
+
+		artists = append(artists, artist)
+	}
+
+	return artists, nil
+}
+
+func (repo *artistRepository) FindByArtistIds(ctx context.Context, inClause string, artistIds []any) (artists []models.Artist, err error) {
+	query := fmt.Sprintf(`SELECT id, name, slug, image FROM artists WHERE id IN %s`, inClause)
+
+	rows, err := repo.db.QueryContext(ctx, query, artistIds...)
 
 	if err != nil {
 		repo.log.WithError(err).Error("failed to query artists")

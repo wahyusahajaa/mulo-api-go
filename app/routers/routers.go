@@ -19,12 +19,13 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	})
 
 	authGroup := v1.Group("auth")
-	authGroupProtected := authGroup.Use(h.Middleware.AuthRequired())
-	v1Protected := v1.Use(h.Middleware.AuthRequired())
 
 	// Public routes
 	authGroup.Post("/login", h.Auth.Login)
 	authGroup.Post("/register", h.Auth.Register)
+
+	authGroupProtected := authGroup.Use(h.Middleware.AuthRequired())
+	v1Protected := v1.Use(h.Middleware.AuthRequired())
 
 	authGroupProtected.Put("/verify-email", h.Auth.VerifyEmail)
 	authGroupProtected.Post("/resend-code", h.Auth.ResendCodeEmailVerification)
@@ -42,6 +43,13 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Post("/artists", h.Artist.CreateArtist)
 	v1Protected.Put("/artists/:id", h.Artist.UpdateArtist)
 	v1Protected.Delete("/artists/:id", h.Artist.DeleteArtist)
+
+	// Albums endpoint
+	v1Protected.Get("/albums", h.Album.GetAlbums)
+	v1Protected.Get("/albums/:id", h.Album.GetAlbum)
+	v1Protected.Post("/albums", h.Album.CreateAlbum)
+	v1Protected.Put("/albums/:id", h.Album.UpdateAlbum)
+	v1Protected.Delete("/albums/:id", h.Album.DeleteAlbum)
 
 	return app
 }

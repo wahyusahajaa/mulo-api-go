@@ -21,7 +21,7 @@ func NewArtistService(repo contracts.ArtistRepository, log *logrus.Logger) contr
 }
 
 func (svc *artistService) GetAll(ctx context.Context, pageSize, offset int) (artists []models.Artist, err error) {
-	artists, err = svc.repo.FetchAll(ctx, pageSize, offset)
+	artists, err = svc.repo.FindAll(ctx, pageSize, offset)
 
 	if err != nil {
 		svc.log.WithError(err).Error("error in artist service")
@@ -29,6 +29,17 @@ func (svc *artistService) GetAll(ctx context.Context, pageSize, offset int) (art
 	}
 
 	return artists, nil
+}
+
+func (svc *artistService) GetArtistByIds(ctx context.Context, inClause string, artistIds []any) (artists []models.Artist, err error) {
+	artists, err = svc.repo.FindByArtistIds(ctx, inClause, artistIds)
+
+	if err != nil {
+		svc.log.WithError(err).Error("error in artist service")
+		return
+	}
+
+	return
 }
 
 func (svc *artistService) GetCount(ctx context.Context) (total int, err error) {

@@ -7,6 +7,7 @@ type Handlers struct {
 	Middleware *middlewares.AuthMiddleware
 	User       *UserHandler
 	Artist     *ArtistHandler
+	Album      *AlbumHandler
 }
 
 func NewHandlers(
@@ -14,11 +15,13 @@ func NewHandlers(
 	middleware *middlewares.AuthMiddleware,
 	user *UserHandler,
 	artist *ArtistHandler,
+	album *AlbumHandler,
 ) *Handlers {
 	return &Handlers{
 		Auth:       auth,
 		Middleware: middleware,
 		User:       user,
 		Artist:     artist,
+		Album:      album,
 	}
 }

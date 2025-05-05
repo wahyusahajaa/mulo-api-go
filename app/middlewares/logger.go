@@ -2,11 +2,14 @@ package middlewares
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 func FiberLogger(logger *logrus.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		requestId := uuid.New().String()
+		c.Locals("requestId", requestId)
 		err := c.Next()
 
 		logger.WithFields(logrus.Fields{
@@ -14,12 +17,11 @@ func FiberLogger(logger *logrus.Logger) fiber.Handler {
 			"url":        c.OriginalURL(),
 			"status":     c.Response().StatusCode(),
 			"user_agent": c.Get("User-Agent"),
+			"requestId":  requestId,
 		}).Info("Request processed")
 
 		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("Request error")
+			logger.WithError(err).Error("Request error")
 		}
 
 		return err

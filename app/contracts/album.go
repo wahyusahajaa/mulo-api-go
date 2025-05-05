@@ -14,6 +14,7 @@ type AlbumRepository interface {
 	FindDuplicateAlbumBySlug(ctx context.Context, slug string) (exists bool, err error)
 	Update(ctx context.Context, artistId int, name, slug string, image []byte, id int) (err error)
 	Delete(ctx context.Context, id int) (err error)
+	FindExistsAlbumById(ctx context.Context, id int) (exists bool, err error)
 }
 
 type AlbumService interface {

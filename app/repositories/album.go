@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
 type albumRepository struct {
@@ -149,6 +150,17 @@ func (repo *albumRepository) Delete(ctx context.Context, id int) (err error) {
 
 	if _, err = repo.db.ExecContext(ctx, query, id); err != nil {
 		repo.log.WithError(err).Error("failed to query delete album")
+		return
+	}
+
+	return
+}
+
+func (repo *albumRepository) FindExistsAlbumById(ctx context.Context, id int) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM albums WHERE id = $1)`
+
+	if err = repo.db.QueryRowContext(ctx, query, id).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "FindExistsAlbumById", err)
 		return
 	}
 

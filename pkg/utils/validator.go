@@ -10,47 +10,51 @@ import (
 
 var validate = validator.New()
 
-var customMessage = map[string]string{
-	"required": "This field is required",
-	"min":      "Value is too short",
-	"email":    "Invalid email format",
+func RequestValidate(req any) (map[string]string, error) {
+	if err := validate.Struct(req); err != nil {
+		errorMap := make(map[string]string)
+
+		for _, fe := range err.(validator.ValidationErrors) {
+			fieldName := getJSONFieldName(req, fe.StructField())
+			message := getErrorMessage(fe)
+
+			errorMap[fieldName] = message
+		}
+
+		return errorMap, fmt.Errorf("validation failed")
+	}
+
+	return nil, nil
 }
 
-func GetJSONFieldName(structType any, fieldName string) string {
-	t := reflect.TypeOf(structType)
+func getJSONFieldName(obj any, field string) string {
+	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 
-	if field, ok := t.FieldByName(fieldName); ok {
-		tag := field.Tag.Get("json")
-		if tag != "" && tag != "-" {
+	if f, ok := t.FieldByName(field); ok {
+		tag := f.Tag.Get("json")
+		if tag != "" {
 			return strings.Split(tag, ",")[0]
 		}
 	}
-	return fieldName
+
+	return strings.ToLower(field)
 }
 
-func RequestValidate(input any) (map[string]string, error) {
-	err := validate.Struct(input)
-	if err != nil {
-		errs := err.(validator.ValidationErrors)
-		errorsMap := map[string]string{}
-
-		for _, e := range errs {
-			field := GetJSONFieldName(input, e.StructField())
-			tag := e.Tag()
-
-			msg, ok := customMessage[tag]
-			if !ok {
-				msg = "Validation failed on " + tag
-			}
-
-			errorsMap[field] = msg
-		}
-
-		return errorsMap, fmt.Errorf("validation failed")
+func getErrorMessage(fe validator.FieldError) string {
+	customErrorMessage := map[string]string{
+		"required": "Field is required",
+		"min":      fmt.Sprintf("Minimum value is %s", fe.Param()),
+		"max":      fmt.Sprintf("Maximum value is %s", fe.Param()),
+		"email":    "Must be a valid email",
+		"len":      fmt.Sprintf("Length must be %s characters", fe.Param()),
 	}
 
-	return nil, nil
+	if result, ok := customErrorMessage[fe.Tag()]; ok {
+		return result
+	}
+
+	return "Invalid value"
 }

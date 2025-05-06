@@ -48,7 +48,10 @@ func InitializedApp() (*AppContainer, error) {
 	songRepository := repositories.NewSongRepository(db, logrusLogger)
 	songService := services.NewSongService(songRepository, albumRepository, logrusLogger)
 	songHandler := handlers.NewSongHandler(songService, logrusLogger)
-	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware, userHandler, artistHandler, albumHandler, songHandler)
+	genreRepository := repositories.NewGenreRepository(db, logrusLogger)
+	genreService := services.NewGenreService(genreRepository, logrusLogger)
+	genreHandler := handlers.NewGenreHandler(genreService, logrusLogger)
+	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware, userHandler, artistHandler, albumHandler, songHandler, genreHandler)
 	v := middlewares.FiberLogger(logrusLogger)
 	app := routers.ProviderFiberApp(handlersHandlers, v)
 	appContainer := &AppContainer{
@@ -74,3 +77,5 @@ var artistSet = wire.NewSet(repositories.NewArtistRepository, services.NewArtist
 var albumSet = wire.NewSet(repositories.NewAlbumRepository, services.NewAlbumService, handlers.NewAlbumHandler)
 
 var songSet = wire.NewSet(repositories.NewSongRepository, services.NewSongService, handlers.NewSongHandler)
+
+var genreSet = wire.NewSet(repositories.NewGenreRepository, services.NewGenreService, handlers.NewGenreHandler)

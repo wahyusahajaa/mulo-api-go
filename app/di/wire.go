@@ -55,6 +55,12 @@ var songSet = wire.NewSet(
 	handlers.NewSongHandler,
 )
 
+var genreSet = wire.NewSet(
+	repositories.NewGenreRepository,
+	services.NewGenreService,
+	handlers.NewGenreHandler,
+)
+
 func InitializedApp() (*AppContainer, error) {
 	wire.Build(
 		logger.NewLogger,
@@ -66,6 +72,7 @@ func InitializedApp() (*AppContainer, error) {
 		artistSet,
 		albumSet,
 		songSet,
+		genreSet,
 		middlewares.NewAuthMiddleware,
 		handlers.NewHandlers,
 		routers.ProviderFiberApp,

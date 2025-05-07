@@ -6,15 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Get requestId from context
-func GetRequestId(ctx context.Context) string {
-	v := ctx.Value("requestId")
-	if id, ok := v.(string); ok {
-		return id
-	}
-	return ""
-}
-
 // Set log error
 func LogError(log *logrus.Logger, ctx context.Context, layer, operation string, err error) {
 	log.WithFields(logrus.Fields{

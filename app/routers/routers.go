@@ -66,11 +66,11 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Delete("/genres/:id", h.Genre.DeleteGenre)
 
 	// Playlists Endpoint
-	// v1Protected.Get("/genres", h.Genre.GetGenres)
-	// v1Protected.Get("/genres/:id", h.Genre.GetGenre)
-	// v1Protected.Post("/genres", h.Genre.CreateGenre)
-	// v1Protected.Put("/genres/:id", h.Genre.UpdateGenre)
-	// v1Protected.Delete("/genres/:id", h.Genre.DeleteGenre)
+	v1Protected.Get("/playlists", h.Playlist.GetPlaylists)
+	v1Protected.Get("/playlists/:id", h.Playlist.GetPlaylist)
+	v1Protected.Post("/playlists", h.Playlist.CreatePlaylist)
+	v1Protected.Put("/playlists/:id", h.Playlist.UpdatePlaylist)
+	v1Protected.Delete("/playlists/:id", h.Playlist.DeletePlaylist)
 
 	return app
 }

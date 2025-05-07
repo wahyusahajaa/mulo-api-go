@@ -110,7 +110,7 @@ func (svc *songService) CreateSong(ctx context.Context, req dto.CreateSongReques
 
 	imgByte, err := utils.ParseImageToByte(req.Image)
 	if err != nil {
-		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: utils.ErrMap{"image": "Invalid image object"}})
+		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
 	}
 
 	exists, err := svc.albumRepo.FindExistsAlbumById(ctx, req.AlbumId)
@@ -147,7 +147,7 @@ func (svc *songService) UpdateSong(ctx context.Context, req dto.CreateSongReques
 
 	imgByte, err := utils.ParseImageToByte(req.Image)
 	if err != nil {
-		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: utils.ErrMap{"image": "Invalid image object"}})
+		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
 	}
 
 	exists, err := svc.songRepo.FindExistsSongById(ctx, id)

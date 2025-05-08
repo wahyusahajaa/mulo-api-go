@@ -9,5 +9,5 @@ type Artist struct {
 
 type CreateArtistRequest struct {
 	Name  string `json:"name" validate:"required"`
-	Image *Image `json:"image,omitempty"`
+	Image *Image `json:"image" validate:"required"`
 }

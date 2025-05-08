@@ -11,6 +11,7 @@ type Handlers struct {
 	Song       *SongHandler
 	Genre      *GenreHandler
 	Playlist   *PlaylistHandler
+	Favorite   *FavoriteHandler
 }
 
 func NewHandlers(
@@ -22,6 +23,7 @@ func NewHandlers(
 	song *SongHandler,
 	genre *GenreHandler,
 	playlist *PlaylistHandler,
+	favorite *FavoriteHandler,
 ) *Handlers {
 	return &Handlers{
 		Auth:       auth,
@@ -32,5 +34,6 @@ func NewHandlers(
 		Song:       song,
 		Genre:      genre,
 		Playlist:   playlist,
+		Favorite:   favorite,
 	}
 }

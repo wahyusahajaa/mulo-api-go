@@ -72,5 +72,10 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Put("/playlists/:id", h.Playlist.UpdatePlaylist)
 	v1Protected.Delete("/playlists/:id", h.Playlist.DeletePlaylist)
 
+	// Song Favorites Endpoints
+	v1Protected.Get("/favorites/songs", h.Favorite.GetFavoriteSongsByUserId)
+	v1Protected.Post("/favorites/songs/:songId", h.Favorite.CreateFavoriteSong)
+	v1Protected.Delete("/favorites/songs/:songId", h.Favorite.DeleteFavoriteSong)
+
 	return app
 }

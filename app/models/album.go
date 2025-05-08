@@ -12,3 +12,10 @@ type AlbumWithArtist struct {
 	Album
 	Artist Artist
 }
+
+type CreateAlbumInput struct {
+	ArtistId int
+	Name     string
+	Slug     string
+	Image    []byte
+}

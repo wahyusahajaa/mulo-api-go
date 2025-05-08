@@ -29,9 +29,8 @@ func (repo *albumRepository) FindAll(ctx context.Context, pageSize int, offset i
 	args := []any{pageSize, offset}
 
 	rows, err := repo.db.QueryContext(ctx, query, args...)
-
 	if err != nil {
-		repo.log.WithError(err).Error("failed to query albums")
+		utils.LogError(repo.log, ctx, "album_repo", "FindAll", err)
 		return nil, err
 	}
 
@@ -39,7 +38,6 @@ func (repo *albumRepository) FindAll(ctx context.Context, pageSize int, offset i
 
 	for rows.Next() {
 		album := models.Album{}
-
 		if err = rows.Scan(
 			&album.Id,
 			&album.ArtistId,
@@ -47,7 +45,7 @@ func (repo *albumRepository) FindAll(ctx context.Context, pageSize int, offset i
 			&album.Slug,
 			&album.Image,
 		); err != nil {
-			repo.log.WithError(err).Error("failed to scan albums")
+			utils.LogError(repo.log, ctx, "album_repo", "FindAll", err)
 			return nil, err
 		}
 
@@ -75,7 +73,6 @@ func (repo *albumRepository) FindAlbumById(ctx context.Context, id int) (album *
 	`
 
 	album = &models.AlbumWithArtist{}
-
 	if err = repo.db.QueryRowContext(ctx, query, id).Scan(
 		&album.Id,
 		&album.Name,
@@ -86,70 +83,24 @@ func (repo *albumRepository) FindAlbumById(ctx context.Context, id int) (album *
 		&album.Artist.Slug,
 		&album.Artist.Image,
 	); err != nil {
-
 		if errors.Is(err, sql.ErrNoRows) {
-			repo.log.WithField("album_id", id).Warn("album not found")
+			notFoundErr := utils.NotFoundError{Resource: "Album", Id: id}
+			utils.LogWarn(repo.log, ctx, "album_repo", "FindAlbumById", notFoundErr)
 			return nil, nil
 		}
 
-		repo.log.WithError(err).Error("failed to query album")
+		utils.LogError(repo.log, ctx, "album_repo", "FindAlbumById", err)
 		return nil, err
 	}
 
 	return
 }
 
-func (repo *albumRepository) Count(ctx context.Context) (total int, err error) {
+func (repo *albumRepository) FindCount(ctx context.Context) (total int, err error) {
 	query := `SELECT COUNT(*) FROM albums`
 
 	if err = repo.db.QueryRowContext(ctx, query).Scan(&total); err != nil {
-		repo.log.WithError(err).Error("failed to query count albums")
-		return
-	}
-
-	return
-}
-
-func (repo *albumRepository) Store(ctx context.Context, artistId int, name string, slug string, image []byte) (err error) {
-	query := `INSERT INTO albums(artist_id, name, slug, image) VALUES($1, $2, $3, $4)`
-	args := []any{artistId, name, slug, image}
-
-	if _, err = repo.db.QueryContext(ctx, query, args...); err != nil {
-		repo.log.WithError(err).Error("failed to query insert albums")
-		return
-	}
-
-	return
-}
-
-func (repo *albumRepository) FindDuplicateAlbumBySlug(ctx context.Context, slug string) (exists bool, err error) {
-	query := `SELECT EXISTS (SELECT 1 FROM albums WHERE slug = $1)`
-
-	if err = repo.db.QueryRowContext(ctx, query, slug).Scan(&exists); err != nil {
-		repo.log.WithError(err).Error("failed to query check duplicate album")
-		return
-	}
-
-	return
-}
-
-func (repo *albumRepository) Update(ctx context.Context, artistId int, name string, slug string, image []byte, id int) (err error) {
-	query := `UPDATE albums SET name = $1, artist_id = $2, slug = $3, image = $4 WHERE id = $5`
-	args := []any{name, artistId, slug, image, id}
-
-	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
-		repo.log.WithError(err).Error("failed to query update albums")
-		return
-	}
-
-	return
-}
-
-func (repo *albumRepository) Delete(ctx context.Context, id int) (err error) {
-	query := `DELETE FROM albums WHERE id = $1`
-
-	if _, err = repo.db.ExecContext(ctx, query, id); err != nil {
-		repo.log.WithError(err).Error("failed to query delete album")
+		utils.LogError(repo.log, ctx, "album_repo", "FindCount", err)
 		return
 	}
 
@@ -161,6 +112,52 @@ func (repo *albumRepository) FindExistsAlbumById(ctx context.Context, id int) (e
 
 	if err = repo.db.QueryRowContext(ctx, query, id).Scan(&exists); err != nil {
 		utils.LogError(repo.log, ctx, "album_repo", "FindExistsAlbumById", err)
+		return
+	}
+
+	return
+}
+
+func (repo *albumRepository) FindExistsAlbumBySlug(ctx context.Context, slug string) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM albums WHERE slug = $1)`
+
+	if err = repo.db.QueryRowContext(ctx, query, slug).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "FindExistsAlbumBySlug", err)
+		return
+	}
+
+	return
+}
+
+func (repo *albumRepository) Store(ctx context.Context, input models.CreateAlbumInput) (err error) {
+	query := `INSERT INTO albums(artist_id, name, slug, image) VALUES($1, $2, $3, $4)`
+	args := []any{input.ArtistId, input.Name, input.Slug, input.Image}
+
+	if _, err = repo.db.QueryContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "Store", err)
+		return
+	}
+
+	return
+}
+
+func (repo *albumRepository) Update(ctx context.Context, input models.CreateAlbumInput, id int) (err error) {
+	query := `UPDATE albums SET name = $1, artist_id = $2, slug = $3, image = $4 WHERE id = $5`
+	args := []any{input.Name, input.ArtistId, input.Slug, input.Image, id}
+
+	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "Update", err)
+		return
+	}
+
+	return
+}
+
+func (repo *albumRepository) Delete(ctx context.Context, id int) (err error) {
+	query := `DELETE FROM albums WHERE id = $1`
+
+	if _, err = repo.db.ExecContext(ctx, query, id); err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "Delete", err)
 		return
 	}
 

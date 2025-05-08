@@ -3,7 +3,7 @@ package dto
 type CreateAlbumRequest struct {
 	Name     string `json:"name" validate:"required"`
 	ArtistId int    `json:"artist_id" validate:"required"`
-	Image    *Image `json:"image,omitempty"`
+	Image    *Image `json:"image" validate:"required"`
 }
 
 type Album struct {

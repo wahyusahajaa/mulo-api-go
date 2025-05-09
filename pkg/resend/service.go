@@ -1,15 +1,11 @@
-package utils
+package resend
 
 import (
 	"log"
 
-	"github.com/resend/resend-go/v2"
+	resendlib "github.com/resend/resend-go/v2"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
 )
-
-type ResendService interface {
-	SendEmailVerificationCode(sendTo, code string)
-}
 
 type resendService struct {
 	secret string
@@ -23,8 +19,8 @@ func NewResendService(cfg *config.Config) ResendService {
 
 func (r *resendService) SendEmailVerificationCode(sendTo, code string) {
 	// Send email code verification
-	client := resend.NewClient(r.secret)
-	params := &resend.SendEmailRequest{
+	client := resendlib.NewClient(r.secret)
+	params := &resendlib.SendEmailRequest{
 		From:    "mulo@resend.dev",
 		To:      []string{sendTo},
 		Subject: "Mulo Email Verification",

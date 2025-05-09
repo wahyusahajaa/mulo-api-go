@@ -1,19 +1,13 @@
-package utils
+package jwt
 
 import (
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
+	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
 )
-
-type JWTService interface {
-	GenerateJWTToken(id int, fullname string, username string, role string, isVerifiedAt bool) (string, error)
-	ParseJWTToken(tokenString string) (jwt.MapClaims, error)
-	ExtractTokenFromHeader(authHeader string) (string, error)
-}
 
 type jwtService struct {
 	secret string
@@ -26,7 +20,7 @@ func NewJWTService(cfg *config.Config) JWTService {
 }
 
 func (j *jwtService) GenerateJWTToken(id int, fullname string, username string, role string, isEmailVerified bool) (string, error) {
-	claims := jwt.MapClaims{
+	claims := jwtlib.MapClaims{
 		"id":                id,
 		"full_name":         fullname,
 		"username":          username,
@@ -36,24 +30,24 @@ func (j *jwtService) GenerateJWTToken(id int, fullname string, username string, 
 		// "exp": time.Now().Add(time.Minute * 1).Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, claims)
 
 	return token.SignedString([]byte(j.secret))
 }
 
-func (j *jwtService) ParseJWTToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+func (j *jwtService) ParseJWTToken(tokenString string) (jwtlib.MapClaims, error) {
+	token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (any, error) {
+		if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
 			return nil, fiber.NewError(fiber.StatusUnauthorized, "Unexpected signing method")
 		}
 		return []byte(j.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
+	}, jwtlib.WithValidMethods([]string{"HS256"}))
 
 	if err != nil || !token.Valid {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token: "+err.Error())
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwtlib.MapClaims)
 	if !ok {
 		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token claims")
 	}

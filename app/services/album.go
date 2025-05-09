@@ -25,7 +25,7 @@ func NewAlbumService(repo contracts.AlbumRepository, artistRepo contracts.Artist
 	}
 }
 
-func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (albums []dto.Album, err error) {
+func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (albums []dto.AlbumWithArtist, err error) {
 	albumResults, err := svc.repo.FindAll(ctx, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "album_service", "GetAll", err)
@@ -56,13 +56,15 @@ func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (
 		artistMap[artist.Id] = artist
 	}
 
-	albums = make([]dto.Album, 0, len(albumResults))
+	albums = make([]dto.AlbumWithArtist, 0, len(albumResults))
 	for _, albumResult := range albumResults {
-		album := dto.Album{
-			Id:    albumResult.Id,
-			Name:  albumResult.Name,
-			Slug:  albumResult.Slug,
-			Image: utils.ParseImageToJSON(albumResult.Image),
+		album := dto.AlbumWithArtist{
+			Album: dto.Album{
+				Id:    albumResult.Id,
+				Name:  albumResult.Name,
+				Slug:  albumResult.Slug,
+				Image: utils.ParseImageToJSON(albumResult.Image),
+			},
 		}
 
 		if artist, ok := artistMap[albumResult.ArtistId]; ok {
@@ -78,7 +80,7 @@ func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (
 	return albums, nil
 }
 
-func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.Album, err error) {
+func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.AlbumWithArtist, err error) {
 	result, err := svc.repo.FindAlbumById(ctx, id)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "album_service", "GetAlbumById", err)
@@ -90,11 +92,13 @@ func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.Al
 		return album, fmt.Errorf("%w", notFoundErr)
 	}
 
-	album = dto.Album{
-		Id:    result.Id,
-		Name:  result.Name,
-		Slug:  result.Slug,
-		Image: utils.ParseImageToJSON(result.Image),
+	album = dto.AlbumWithArtist{
+		Album: dto.Album{
+			Id:    result.Id,
+			Name:  result.Name,
+			Slug:  result.Slug,
+			Image: utils.ParseImageToJSON(result.Image),
+		},
 		Artist: dto.Artist{
 			Id:    result.Artist.Id,
 			Name:  result.Artist.Name,
@@ -246,4 +250,26 @@ func (svc *albumService) DeleteAlbum(ctx context.Context, id int) (err error) {
 	}
 
 	return
+}
+
+func (svc *albumService) GetAlbumsByArtistId(ctx context.Context, artistId int) (albums []dto.Album, err error) {
+	results, err := svc.repo.FindAlbumsByArtistId(ctx, artistId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "album_service", "GetAlbumsByArtistId", err)
+		return nil, err
+	}
+
+	albums = make([]dto.Album, 0, len(results))
+	for _, result := range results {
+		album := dto.Album{
+			Id:    result.Id,
+			Name:  result.Name,
+			Slug:  result.Slug,
+			Image: utils.ParseImageToJSON(result.Image),
+		}
+
+		albums = append(albums, album)
+	}
+
+	return albums, nil
 }

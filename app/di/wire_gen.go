@@ -16,8 +16,10 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/repositories"
 	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 	"github.com/wahyusahajaa/mulo-api-go/app/services"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/logger"
-	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/resend"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/verification"
 )
 
 // Injectors from wire.go:
@@ -30,11 +32,11 @@ func InitializedApp() (*AppContainer, error) {
 	}
 	logrusLogger := logger.NewLogger()
 	authRepository := repositories.NewAuthRepository(db, logrusLogger)
-	authService := services.NewAuthService(authRepository, logrusLogger)
-	jwtService := utils.NewJWTService(configConfig)
-	resendService := utils.NewResendService(configConfig)
-	verificationService := utils.NewVerification(authRepository)
-	authHandler := handlers.NewAuthHandler(authService, jwtService, resendService, verificationService, logrusLogger)
+	jwtService := jwt.NewJWTService(configConfig)
+	verificationService := verification.NewVerificationService(authRepository)
+	resendService := resend.NewResendService(configConfig)
+	authService := services.NewAuthService(authRepository, jwtService, verificationService, resendService, logrusLogger)
+	authHandler := handlers.NewAuthHandler(authService, logrusLogger)
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
 	userRepository := repositories.NewUserRepository(db, logrusLogger)
 	userService := services.NewUserService(userRepository, logrusLogger)
@@ -74,7 +76,9 @@ type AppContainer struct {
 	Config *config.Config
 }
 
-var authSet = wire.NewSet(utils.NewJWTService, utils.NewResendService, repositories.NewAuthRepository, services.NewAuthService, utils.NewVerification, handlers.NewAuthHandler)
+var commonSet = wire.NewSet(jwt.NewJWTService, resend.NewResendService, verification.NewVerificationService)
+
+var authSet = wire.NewSet(repositories.NewAuthRepository, services.NewAuthService, handlers.NewAuthHandler)
 
 var userSet = wire.NewSet(repositories.NewUserRepository, services.NewUserService, handlers.NewUserHandler)
 

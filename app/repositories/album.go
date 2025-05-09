@@ -163,3 +163,27 @@ func (repo *albumRepository) Delete(ctx context.Context, id int) (err error) {
 
 	return
 }
+
+func (repo *albumRepository) FindAlbumsByArtistId(ctx context.Context, artistId int) (albums []models.Album, err error) {
+	query := `SELECT id, artist_id, name, slug, image FROM albums WHERE artist_id = $1`
+
+	rows, err := repo.db.QueryContext(ctx, query, artistId)
+	if err != nil {
+		utils.LogError(repo.log, ctx, "album_repo", "FindAlbumsByArtistId", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		album := models.Album{}
+		if err := rows.Scan(&album.Id, &album.ArtistId, &album.Name, &album.Slug, &album.Image); err != nil {
+			utils.LogError(repo.log, ctx, "album_repo", "FindAlbumsByArtistId", err)
+			return nil, err
+		}
+
+		albums = append(albums, album)
+	}
+
+	return albums, nil
+}

@@ -245,3 +245,110 @@ func (repo *genreRepository) DeleteSongGenre(ctx context.Context, songId int, ge
 
 	return
 }
+
+func (repo *genreRepository) FindAllArtists(ctx context.Context, genreId int, pageSize int, offset int) (artists []models.Artist, err error) {
+	query := `SELECT ar.id, ar.name, ar.slug, ar.image FROM artist_genres ag INNER JOIN artists ar ON ar.id = ag.artist_id WHERE ag.genre_id = $1 ORDER BY ag.created_at DESC LIMIT $2 OFFSET $3`
+	args := []any{genreId, pageSize, offset}
+
+	rows, err := repo.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindAllArtists", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var artist models.Artist
+		if err = rows.Scan(&artist.Id, &artist.Name, &artist.Slug, &artist.Image); err != nil {
+			utils.LogError(repo.log, ctx, "genre_repo", "FindAllArtists", err)
+			return nil, err
+		}
+
+		artists = append(artists, artist)
+	}
+
+	return artists, nil
+}
+
+func (repo *genreRepository) FindCountArtists(ctx context.Context, genreId int) (total int, err error) {
+	query := `SELECT COUNT(*) FROM artist_genres WHERE genre_id = $1`
+
+	if err = repo.db.QueryRowContext(ctx, query, genreId).Scan(&total); err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindCountArtists", err)
+		return total, err
+	}
+
+	return
+}
+
+func (repo *genreRepository) FindAllSongs(ctx context.Context, genreId int, pageSize int, offset int) (songs []models.Song, err error) {
+	query := `
+		SELECT 
+			s.id,
+			s.title,
+			s.audio,
+			s.duration,
+			s.image,
+			al.id as album_id ,
+			al."name" as album_name,
+			al.slug as album_slug,
+			al.image as album_image,
+			ar.id as artist_id,
+			ar.name as artist_name,
+			ar.slug as artist_slug,
+			ar.image as artist_image
+		FROM song_genres sg
+		INNER JOIN songs s ON s.id = sg.song_id
+		INNER JOIN albums al ON al.id = s.album_id
+		INNER JOIN artists ar ON ar.id = al.artist_id
+		WHERE sg.genre_id = $1
+		ORDER BY sg.created_at desc 
+		LIMIT $2 OFFSET $3
+	`
+	args := []any{genreId, pageSize, offset}
+
+	rows, err := repo.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindAllSongs", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		song := models.Song{}
+		if err := rows.Scan(
+			&song.Id,
+			&song.Title,
+			&song.Audio,
+			&song.Duration,
+			&song.Image,
+			&song.Album.Id,
+			&song.Album.Name,
+			&song.Album.Slug,
+			&song.Album.Image,
+			&song.Album.Artist.Id,
+			&song.Album.Artist.Name,
+			&song.Album.Artist.Slug,
+			&song.Album.Artist.Image,
+		); err != nil {
+			utils.LogError(repo.log, ctx, "genre_repo", "FindAllSongs", err)
+			return nil, err
+		}
+
+		songs = append(songs, song)
+	}
+
+	return songs, nil
+}
+
+func (repo *genreRepository) FindCountSongs(ctx context.Context, genreId int) (total int, err error) {
+	query := `SELECT COUNT(*) FROM song_genres WHERE genre_id = $1`
+
+	if err = repo.db.QueryRowContext(ctx, query, genreId).Scan(&total); err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindCountSongs", err)
+		return total, err
+	}
+
+	return
+}

@@ -23,6 +23,10 @@ type GenreRepository interface {
 	FindExistsSongGenreByGenreId(ctx context.Context, songId, genreId int) (exists bool, err error)
 	FindSongGenres(ctx context.Context, songId, pageSize, offset int) (genres []models.Genre, err error)
 	DeleteSongGenre(ctx context.Context, songId, genreId int) (err error)
+	FindAllArtists(ctx context.Context, genreId, pageSize, offset int) (artists []models.Artist, err error)
+	FindCountArtists(ctx context.Context, genreId int) (total int, err error)
+	FindAllSongs(ctx context.Context, genreId, pageSize, offset int) (songs []models.Song, err error)
+	FindCountSongs(ctx context.Context, genreId int) (total int, err error)
 }
 
 type GenreService interface {
@@ -38,4 +42,8 @@ type GenreService interface {
 	CreateSongGenre(ctx context.Context, songId, genreId int) (err error)
 	GetSongGenres(ctx context.Context, songId, pageSize, offset int) (genres []dto.Genre, err error)
 	DeleteSongGenre(ctx context.Context, songId, genreId int) (err error)
+	GetAllArtists(ctx context.Context, genreId, pageSize, offset int) (artists []dto.Artist, err error)
+	GetCountArtists(ctx context.Context, genreId int) (total int, err error)
+	GetAllSongs(ctx context.Context, genreId, pageSize, offset int) (songs []dto.Song, err error)
+	GetCountSongs(ctx context.Context, genreId int) (total int, err error)
 }

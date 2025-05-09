@@ -324,3 +324,80 @@ func (svc *genreService) DeleteSongGenre(ctx context.Context, songId int, genreI
 
 	return
 }
+
+func (svc *genreService) GetAllArtists(ctx context.Context, genreId int, pageSize int, offset int) (artists []dto.Artist, err error) {
+	results, err := svc.repo.FindAllArtists(ctx, genreId, pageSize, offset)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetAllArtists", err)
+		return nil, err
+	}
+
+	artists = make([]dto.Artist, 0, len(results))
+	for _, result := range results {
+		artists = append(artists, dto.Artist{
+			Id:    result.Id,
+			Name:  result.Name,
+			Slug:  result.Slug,
+			Image: utils.ParseImageToJSON(result.Image),
+		})
+	}
+
+	return artists, nil
+}
+
+func (svc *genreService) GetCountArtists(ctx context.Context, genreId int) (total int, err error) {
+	total, err = svc.repo.FindCountArtists(ctx, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetCountArtists", err)
+		return
+	}
+
+	return
+}
+
+func (svc *genreService) GetAllSongs(ctx context.Context, genreId int, pageSize int, offset int) (songs []dto.Song, err error) {
+	results, err := svc.repo.FindAllSongs(ctx, genreId, pageSize, offset)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetAllSongs", err)
+		return nil, err
+	}
+
+	songs = make([]dto.Song, 0, len(results))
+
+	for _, v := range results {
+		song := dto.Song{
+			Id:       v.Id,
+			Title:    v.Title,
+			Audio:    v.Audio,
+			Duration: v.Duration,
+			Image:    utils.ParseImageToJSON(v.Image),
+			Album: dto.AlbumWithArtist{
+				Album: dto.Album{
+					Id:    v.Album.Id,
+					Name:  v.Album.Name,
+					Slug:  v.Album.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Image),
+				},
+				Artist: dto.Artist{
+					Id:    v.Album.Artist.Id,
+					Name:  v.Album.Artist.Name,
+					Slug:  v.Album.Artist.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Artist.Image),
+				},
+			},
+		}
+		songs = append(songs, song)
+	}
+
+	return songs, nil
+}
+
+func (svc *genreService) GetCountSongs(ctx context.Context, genreId int) (total int, err error) {
+	total, err = svc.repo.FindCountSongs(ctx, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetCountSongs", err)
+		return
+	}
+
+	return
+}

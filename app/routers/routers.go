@@ -74,6 +74,8 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Post("/genres", h.Genre.CreateGenre)
 	v1Protected.Put("/genres/:id", h.Genre.UpdateGenre)
 	v1Protected.Delete("/genres/:id", h.Genre.DeleteGenre)
+	v1Protected.Get("/genres/:id/artists", h.Genre.GetArtists)
+	v1Protected.Get("/genres/:id/songs", h.Genre.GetSongs)
 
 	// Playlists Endpoint
 	v1Protected.Get("/playlists", h.Playlist.GetPlaylists)

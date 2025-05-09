@@ -184,3 +184,51 @@ func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {
 		"message": "Successfully deleted song genre",
 	})
 }
+
+func (h *GenreHandler) GetArtists(c *fiber.Ctx) error {
+	genreId, _ := strconv.Atoi(c.Params("id"))
+	page, pageSize, offset := utils.GetPaginationParam(c)
+
+	artists, err := h.svc.GetAllArtists(c.Context(), genreId, pageSize, offset)
+	if err != nil {
+		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
+	}
+
+	total, err := h.svc.GetCountArtists(c.Context(), genreId)
+	if err != nil {
+		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": artists,
+		"pagination": dto.Pagination{
+			Page:     page,
+			PageSize: pageSize,
+			Total:    total,
+		},
+	})
+}
+
+func (h *GenreHandler) GetSongs(c *fiber.Ctx) error {
+	genreId, _ := strconv.Atoi(c.Params("id"))
+	page, pageSize, offset := utils.GetPaginationParam(c)
+
+	songs, err := h.svc.GetAllSongs(c.Context(), genreId, pageSize, offset)
+	if err != nil {
+		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
+	}
+
+	total, err := h.svc.GetCountSongs(c.Context(), genreId)
+	if err != nil {
+		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": songs,
+		"pagination": dto.Pagination{
+			Page:     page,
+			PageSize: pageSize,
+			Total:    total,
+		},
+	})
+}

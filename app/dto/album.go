@@ -7,9 +7,13 @@ type CreateAlbumRequest struct {
 }
 
 type Album struct {
-	Id     int    `json:"id"`
-	Name   string `json:"name"`
-	Slug   string `json:"slug"`
-	Image  Image  `json:"image"`
+	Id    int    `json:"id"`
+	Name  string `json:"name"`
+	Slug  string `json:"slug"`
+	Image Image  `json:"image"`
+}
+
+type AlbumWithArtist struct {
+	Album
 	Artist Artist `json:"artist"`
 }

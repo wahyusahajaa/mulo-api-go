@@ -123,3 +123,64 @@ func (repo *genreRepository) Delete(ctx context.Context, id int) (err error) {
 
 	return
 }
+
+func (repo *genreRepository) FindExistsArtistGenreByGenreId(ctx context.Context, artistId int, genreId int) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM artist_genres WHERE artist_id = $1 AND genre_id = $2)`
+	args := []any{artistId, genreId}
+
+	if err = repo.db.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "artist_repo", "FindExistsArtistGenreByGenreId", err)
+		return
+	}
+
+	return
+}
+
+func (repo *genreRepository) StoreArtistGenre(ctx context.Context, artistId int, genreId int) (err error) {
+	query := `INSERT INTO artist_genres(artist_id, genre_id) VALUES($1, $2)`
+	args := []any{artistId, genreId}
+
+	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "artist_repo", "StoreArtistGenre", err)
+		return
+	}
+
+	return
+}
+
+func (repo *genreRepository) FindArtistGenres(ctx context.Context, artistId, pageSize, offset int) (genres []models.Genre, err error) {
+	query := `SELECT g.id AS genre_id, g.name AS genre_name, g.image AS genre_image FROM artist_genres ag INNER JOIN genres g ON g.id = ag.genre_id WHERE ag.artist_id = $1 ORDER BY ag.created_at DESC LIMIT $2 OFFSET $3`
+	args := []any{artistId, pageSize, offset}
+
+	rows, err := repo.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		utils.LogError(repo.log, ctx, "artist_repo", "FindArtistGenres", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var genre models.Genre
+		if err := rows.Scan(&genre.Id, &genre.Name, &genre.Image); err != nil {
+			utils.LogError(repo.log, ctx, "artist_repo", "FindArtistGenres", err)
+			return nil, err
+		}
+
+		genres = append(genres, genre)
+	}
+
+	return genres, nil
+}
+
+func (repo *genreRepository) DeleteArtistGenre(ctx context.Context, artistId int, genreId int) (err error) {
+	query := `DELETE FROM artist_genres WHERE artist_id = $1 AND genre_id = $2`
+	args := []any{artistId, genreId}
+
+	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "artist_repo", "DeleteArtistGenre", err)
+		return err
+	}
+
+	return
+}

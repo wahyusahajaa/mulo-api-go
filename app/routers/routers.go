@@ -44,9 +44,9 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Put("/artists/:id", h.Artist.UpdateArtist)
 	v1Protected.Delete("/artists/:id", h.Artist.DeleteArtist)
 	// Artists genres endpoint
-	v1Protected.Get("/artists/:id/genres", h.Artist.GetArtistGenres)
-	v1Protected.Post("/artists/:id/genres/:genreId", h.Artist.CreateArtistGenre)
-	v1Protected.Delete("/artists/:id/genres/:genreId", h.Artist.DeleteArtistGenre)
+	v1Protected.Get("/artists/:id/genres", h.Genre.GetArtistGenres)
+	v1Protected.Post("/artists/:id/genres/:genreId", h.Genre.CreateArtistGenre)
+	v1Protected.Delete("/artists/:id/genres/:genreId", h.Genre.DeleteArtistGenre)
 	// Artist albums endpoint
 	v1Protected.Get("/artists/:id/albums", h.Album.GetAlbumsByArtistId)
 

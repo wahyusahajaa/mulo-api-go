@@ -12,14 +12,16 @@ import (
 )
 
 type genreService struct {
-	repo contracts.GenreRepository
-	log  *logrus.Logger
+	repo       contracts.GenreRepository
+	artistRepo contracts.ArtistRepository
+	log        *logrus.Logger
 }
 
-func NewGenreService(repo contracts.GenreRepository, log *logrus.Logger) contracts.GenreService {
+func NewGenreService(repo contracts.GenreRepository, artistRepo contracts.ArtistRepository, log *logrus.Logger) contracts.GenreService {
 	return &genreService{
-		repo: repo,
-		log:  log,
+		repo:       repo,
+		artistRepo: artistRepo,
+		log:        log,
 	}
 }
 
@@ -142,6 +144,93 @@ func (svc *genreService) DeleteGenre(ctx context.Context, id int) (err error) {
 	if err = svc.repo.Delete(ctx, id); err != nil {
 		utils.LogError(svc.log, ctx, "genre_service", "DeleteGenre", err)
 		return
+	}
+
+	return
+}
+
+func (svc *genreService) CreateArtistGenre(ctx context.Context, artistId int, genreId int) (err error) {
+	// Check existing artist
+	exists, err := svc.artistRepo.FindExistsArtistById(ctx, artistId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "CreateArtistGenre", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: artistId}
+		utils.LogWarn(svc.log, ctx, "artist_service", "CreateArtistGenre", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	// Check existing genre
+	exists, err = svc.repo.FindExistsGenreById(ctx, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "CreateArtistGenre", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "Genre", Id: genreId}
+		utils.LogWarn(svc.log, ctx, "artist_service", "CreateArtistGenre", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	// Check if genre already exists with the same artist id
+	exists, err = svc.repo.FindExistsArtistGenreByGenreId(ctx, artistId, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "CreateArtistGenre", err)
+		return err
+	}
+	if exists {
+		conflictErr := utils.ConflictError{Resource: "Genre", Field: "genre_id", Value: genreId}
+		utils.LogWarn(svc.log, ctx, "artist_service", "CreateArtistGenre", conflictErr)
+		return fmt.Errorf("%w", conflictErr)
+	}
+
+	// Store new artist genre
+	if err = svc.repo.StoreArtistGenre(ctx, artistId, genreId); err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "CreateArtistGenre", err)
+		return err
+	}
+
+	return
+}
+
+func (svc *genreService) GetArtistGenres(ctx context.Context, artistId int, pageSize int, offset int) (genres []dto.Genre, err error) {
+	results, err := svc.repo.FindArtistGenres(ctx, artistId, pageSize, offset)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "GetArtistGenres", err)
+		return genres, err
+	}
+
+	genres = make([]dto.Genre, 0, len(results))
+	for _, result := range results {
+		genre := dto.Genre{
+			Id:    result.Id,
+			Name:  result.Name,
+			Image: utils.ParseImageToJSON(result.Image),
+		}
+
+		genres = append(genres, genre)
+	}
+
+	return genres, nil
+}
+
+func (svc *genreService) DeleteArtistGenre(ctx context.Context, artistId int, genreId int) (err error) {
+	exists, err := svc.repo.FindExistsArtistGenreByGenreId(ctx, artistId, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "DeleteArtistGenre", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "ArtistGenre", Id: artistId}
+		utils.LogWarn(svc.log, ctx, "artist_service", "DeleteArtistGenre", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	if err := svc.repo.DeleteArtistGenre(ctx, artistId, genreId); err != nil {
+		utils.LogError(svc.log, ctx, "artist_service", "DeleteArtistGenre", err)
+		return err
 	}
 
 	return

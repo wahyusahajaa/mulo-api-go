@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
 type userRepository struct {
@@ -28,7 +29,7 @@ func (repo *userRepository) FindAll(ctx context.Context, pageSize, offset int) (
 	rows, err := repo.db.QueryContext(ctx, query, "admin", pageSize, offset)
 
 	if err != nil {
-		repo.log.WithError(err).Error("failed to query users")
+		utils.LogError(repo.log, ctx, "user_repo", "FindAll", err)
 		return nil, err
 	}
 
@@ -36,7 +37,6 @@ func (repo *userRepository) FindAll(ctx context.Context, pageSize, offset int) (
 
 	for rows.Next() {
 		user := models.User{}
-
 		if err := rows.Scan(
 			&user.Id,
 			&user.Fullname,
@@ -47,7 +47,7 @@ func (repo *userRepository) FindAll(ctx context.Context, pageSize, offset int) (
 			&user.Role,
 			&user.EmailVerifiedAt,
 		); err != nil {
-			repo.log.WithError(err).Error("failed to scan user")
+			utils.LogError(repo.log, ctx, "user_repo", "FindAll", err)
 			return nil, err
 		}
 
@@ -57,11 +57,22 @@ func (repo *userRepository) FindAll(ctx context.Context, pageSize, offset int) (
 	return users, nil
 }
 
+func (repo *userRepository) FindExistsUserById(ctx context.Context, userId int) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM users WHERE id = $1)`
+
+	if err = repo.db.QueryRowContext(ctx, query, userId).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "user_repo", "FindExistsUserById", err)
+		return
+	}
+
+	return
+}
+
 func (repo *userRepository) Count(ctx context.Context) (total int, err error) {
 	query := `SELECT COUNT(*) FROM users WHERE role != $1`
 
 	if err = repo.db.QueryRowContext(ctx, query, "admin").Scan(&total); err != nil {
-		repo.log.WithError(err).Error("failed to query count users")
+		utils.LogError(repo.log, ctx, "user_repo", "Count", err)
 		return
 	}
 
@@ -71,7 +82,6 @@ func (repo *userRepository) Count(ctx context.Context) (total int, err error) {
 func (repo *userRepository) FindUserById(ctx context.Context, userId int) (user *models.User, err error) {
 	query := `SELECT id, full_name, username, email, password, image, role, email_verified_at FROM users WHERE id = $1`
 	user = &models.User{}
-
 	if err = repo.db.QueryRowContext(ctx, query, userId).Scan(
 		&user.Id,
 		&user.Fullname,
@@ -83,23 +93,23 @@ func (repo *userRepository) FindUserById(ctx context.Context, userId int) (user 
 		&user.EmailVerifiedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			repo.log.WithField("user_id", userId).Warn("user not found")
+			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserById", utils.NotFoundError{Resource: "User", Id: userId})
 			return nil, nil
 		}
 
-		repo.log.WithError(err).Error("failed to query user by id")
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserById", err)
 		return nil, err
 	}
 
 	return
 }
 
-func (repo *userRepository) Update(ctx context.Context, fullname string, image []byte, userId int) (err error) {
+func (repo *userRepository) Update(ctx context.Context, input models.CreateUserInput, userId int) (err error) {
 	query := `UPDATE users SET full_name = $1, image = $2 WHERE id = $3`
-	args := []any{fullname, image, userId}
+	args := []any{input.Fullname, input.Image, userId}
 
 	if _, err := repo.db.ExecContext(ctx, query, args...); err != nil {
-		repo.log.WithError(err).Error("failed to query update users")
+		utils.LogError(repo.log, ctx, "user_repo", "Update", err)
 		return err
 	}
 
@@ -110,7 +120,7 @@ func (repo *userRepository) Delete(ctx context.Context, userId int) (err error) 
 	query := `DELETE FROM users WHERE id = $1`
 
 	if _, err := repo.db.ExecContext(ctx, query, userId); err != nil {
-		repo.log.WithError(err).Error("failed to query delete users")
+		utils.LogError(repo.log, ctx, "user_repo", "Delete", err)
 		return err
 	}
 

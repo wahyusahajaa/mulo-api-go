@@ -14,3 +14,8 @@ type User struct {
 	Image           []byte
 	EmailVerifiedAt sql.NullTime
 }
+
+type CreateUserInput struct {
+	Fullname string
+	Image    []byte
+}

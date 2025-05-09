@@ -38,7 +38,7 @@ func InitializedApp() (*AppContainer, error) {
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
 	userRepository := repositories.NewUserRepository(db, logrusLogger)
 	userService := services.NewUserService(userRepository, logrusLogger)
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService, logrusLogger)
 	artistRepository := repositories.NewArtistRepository(db, logrusLogger)
 	artistService := services.NewArtistService(artistRepository, logrusLogger)
 	artistHandler := handlers.NewArtistHandler(artistService, logrusLogger)

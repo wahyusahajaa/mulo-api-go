@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
@@ -11,133 +12,79 @@ import (
 
 type UserHandler struct {
 	svc contracts.UserService
+	log *logrus.Logger
 }
 
-func NewUserHandler(svc contracts.UserService) *UserHandler {
+func NewUserHandler(svc contracts.UserService, log *logrus.Logger) *UserHandler {
 	return &UserHandler{
 		svc: svc,
+		log: log,
 	}
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
-	users, err := h.svc.GetAll(c.Context(), pageSize, offset)
 
+	users, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return utils.HandleHTTPError(c, h.log, "user_handler", "GetUsers", err)
 	}
 
 	total, err := h.svc.GetCount(c.Context())
-
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	var pagination dto.Pagination
-	pagination.Total = total
-	pagination.PageSize = pageSize
-	pagination.Page = page
-
-	results := []dto.User{}
-
-	for _, v := range users {
-		result := dto.User{}
-		result.Id = v.Id
-		result.Fullname = v.Fullname
-		result.Username = v.Username
-		result.Email = v.Email
-		result.Image = utils.ParseImageToJSON(v.Image)
-		results = append(results, result)
+		return utils.HandleHTTPError(c, h.log, "user_handler", "GetUsers", err)
 	}
 
 	return c.JSON(fiber.Map{
-		"data":       results,
-		"pagination": pagination,
+		"data": users,
+		"pagination": dto.Pagination{
+			PageSize: pageSize,
+			Page:     page,
+			Total:    total,
+		},
 	})
 }
 
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	userId, _ := strconv.Atoi(c.Params("id"))
+
 	user, err := h.svc.GetUserById(c.Context(), userId)
-
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	var result *dto.User
-
-	if user != nil {
-		result = &dto.User{
-			Id:       user.Id,
-			Fullname: user.Fullname,
-			Username: user.Username,
-			Email:    user.Email,
-			Image:    utils.ParseImageToJSON(user.Image),
-		}
+		return utils.HandleHTTPError(c, h.log, "user_handler", "GetUser", err)
 	}
 
 	return c.JSON(fiber.Map{
-		"data": result,
+		"data": user,
 	})
 }
 
 func (h *UserHandler) Update(c *fiber.Ctx) error {
 	userId, _ := strconv.Atoi(c.Params("id"))
-	var input dto.UserUpdateInput
+	var req dto.CreateUserInput
 
-	if err := c.BodyParser(&input); err != nil {
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": "Invalid body request.",
 		})
 	}
 
-	imgByte, err := utils.ParseImageToByte(input.Image)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Invalid image object",
-		})
-	}
-
-	user, err := h.svc.GetUserById(c.Context(), userId)
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	if user == nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "user not found",
-		})
-	}
-
-	if err := h.svc.Update(c.Context(), input.Fullname, imgByte, userId); err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+	if err := h.svc.Update(c.Context(), req, userId); err != nil {
+		return utils.HandleHTTPError(c, h.log, "user_handler", "Update", err)
 	}
 
 	return c.JSON(fiber.Map{
-		"message": "Successfully update user",
+		"message": "Successfully updated user",
 	})
 }
 
 func (h *UserHandler) Delete(c *fiber.Ctx) error {
 	userId, _ := strconv.Atoi(c.Params("id"))
 
-	user, err := h.svc.GetUserById(c.Context(), userId)
-
-	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
-	}
-
-	if user == nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "User not found",
-		})
-	}
-
 	if err := h.svc.Delete(c.Context(), userId); err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return utils.HandleHTTPError(c, h.log, "user_handler", "Delete", err)
 	}
 
 	return c.JSON(fiber.Map{
-		"message": "Successfully delete user",
+		"message": "Successfully deleted user",
 	})
 }

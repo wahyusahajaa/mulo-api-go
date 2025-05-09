@@ -8,7 +8,7 @@ type User struct {
 	Image    Image  `json:"image"`
 }
 
-type UserUpdateInput struct {
-	Fullname string `json:"full_name"`
+type CreateUserInput struct {
+	Fullname string `json:"full_name" validate:"required"`
 	Image    *Image `json:"image,omitempty"`
 }

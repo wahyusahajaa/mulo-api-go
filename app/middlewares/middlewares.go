@@ -2,14 +2,14 @@ package middlewares
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 )
 
 type AuthMiddleware struct {
-	jwtService utils.JWTService
+	jwtService jwt.JWTService
 }
 
-func NewAuthMiddleware(jwtService utils.JWTService) *AuthMiddleware {
+func NewAuthMiddleware(jwtService jwt.JWTService) *AuthMiddleware {
 	return &AuthMiddleware{
 		jwtService: jwtService,
 	}
@@ -29,7 +29,7 @@ func (m *AuthMiddleware) AuthRequired() fiber.Handler {
 
 		if !claims["is_email_verified"].(bool) && c.Path() != "/v1/auth/verify-email" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"message": "Email not verified",
+				"message": "Email not verified yet.",
 			})
 		}
 

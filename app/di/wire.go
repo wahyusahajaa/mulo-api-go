@@ -13,8 +13,10 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/repositories"
 	"github.com/wahyusahajaa/mulo-api-go/app/routers"
 	"github.com/wahyusahajaa/mulo-api-go/app/services"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/logger"
-	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/resend"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/verification"
 )
 
 type AppContainer struct {
@@ -22,12 +24,15 @@ type AppContainer struct {
 	Config *config.Config
 }
 
+var commonSet = wire.NewSet(
+	jwt.NewJWTService,
+	resend.NewResendService,
+	verification.NewVerificationService,
+)
+
 var authSet = wire.NewSet(
-	utils.NewJWTService,
-	utils.NewResendService,
 	repositories.NewAuthRepository,
 	services.NewAuthService,
-	utils.NewVerification,
 	handlers.NewAuthHandler,
 )
 
@@ -79,6 +84,7 @@ func InitializedApp() (*AppContainer, error) {
 		middlewares.FiberLogger,
 		config.NewConfig,
 		database.NewDB,
+		commonSet,
 		authSet,
 		userSet,
 		artistSet,

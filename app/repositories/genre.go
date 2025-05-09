@@ -129,7 +129,7 @@ func (repo *genreRepository) FindExistsArtistGenreByGenreId(ctx context.Context,
 	args := []any{artistId, genreId}
 
 	if err = repo.db.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
-		utils.LogError(repo.log, ctx, "artist_repo", "FindExistsArtistGenreByGenreId", err)
+		utils.LogError(repo.log, ctx, "genre_repo", "FindExistsArtistGenreByGenreId", err)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (repo *genreRepository) StoreArtistGenre(ctx context.Context, artistId int,
 	args := []any{artistId, genreId}
 
 	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
-		utils.LogError(repo.log, ctx, "artist_repo", "StoreArtistGenre", err)
+		utils.LogError(repo.log, ctx, "genre_repo", "StoreArtistGenre", err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (repo *genreRepository) FindArtistGenres(ctx context.Context, artistId, pag
 
 	rows, err := repo.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		utils.LogError(repo.log, ctx, "artist_repo", "FindArtistGenres", err)
+		utils.LogError(repo.log, ctx, "genre_repo", "FindArtistGenres", err)
 		return nil, err
 	}
 
@@ -163,7 +163,7 @@ func (repo *genreRepository) FindArtistGenres(ctx context.Context, artistId, pag
 	for rows.Next() {
 		var genre models.Genre
 		if err := rows.Scan(&genre.Id, &genre.Name, &genre.Image); err != nil {
-			utils.LogError(repo.log, ctx, "artist_repo", "FindArtistGenres", err)
+			utils.LogError(repo.log, ctx, "genre_repo", "FindArtistGenres", err)
 			return nil, err
 		}
 
@@ -178,7 +178,68 @@ func (repo *genreRepository) DeleteArtistGenre(ctx context.Context, artistId int
 	args := []any{artistId, genreId}
 
 	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
-		utils.LogError(repo.log, ctx, "artist_repo", "DeleteArtistGenre", err)
+		utils.LogError(repo.log, ctx, "genre_repo", "DeleteArtistGenre", err)
+		return err
+	}
+
+	return
+}
+
+func (repo *genreRepository) StoreSongGenre(ctx context.Context, songId int, genreId int) (err error) {
+	query := `INSERT INTO song_genres(song_id, genre_id) VALUES($1, $2)`
+	args := []any{songId, genreId}
+
+	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "StoreSongGenre", err)
+		return
+	}
+
+	return
+}
+
+func (repo *genreRepository) FindSongGenres(ctx context.Context, songId int, pageSize int, offset int) (genres []models.Genre, err error) {
+	query := `SELECT g.id AS genre_id, g.name AS genre_name, g.image AS genre_image FROM song_genres sg INNER JOIN genres g ON g.id = sg.genre_id WHERE sg.song_id = $1 ORDER BY sg.created_at DESC LIMIT $2 OFFSET $3`
+	args := []any{songId, pageSize, offset}
+
+	rows, err := repo.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindSongGenres", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var genre models.Genre
+		if err := rows.Scan(&genre.Id, &genre.Name, &genre.Image); err != nil {
+			utils.LogError(repo.log, ctx, "genre_repo", "FindSongGenres", err)
+			return nil, err
+		}
+
+		genres = append(genres, genre)
+	}
+
+	return genres, nil
+}
+
+func (repo *genreRepository) FindExistsSongGenreByGenreId(ctx context.Context, songId int, genreId int) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM song_genres WHERE song_id = $1 AND genre_id = $2)`
+	args := []any{songId, genreId}
+
+	if err = repo.db.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "FindExistsSongGenreByGenreId", err)
+		return
+	}
+
+	return
+}
+
+func (repo *genreRepository) DeleteSongGenre(ctx context.Context, songId int, genreId int) (err error) {
+	query := `DELETE FROM song_genres WHERE song_id = $1 AND genre_id = $2`
+	args := []any{songId, genreId}
+
+	if _, err = repo.db.ExecContext(ctx, query, args...); err != nil {
+		utils.LogError(repo.log, ctx, "genre_repo", "DeleteArtistGenre", err)
 		return err
 	}
 

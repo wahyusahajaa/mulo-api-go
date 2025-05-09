@@ -19,6 +19,10 @@ type GenreRepository interface {
 	FindExistsArtistGenreByGenreId(ctx context.Context, artistId, genreId int) (exists bool, err error)
 	FindArtistGenres(ctx context.Context, artistId, pageSize, offset int) (genres []models.Genre, err error)
 	DeleteArtistGenre(ctx context.Context, artistId, genreId int) (err error)
+	StoreSongGenre(ctx context.Context, songId, genreId int) (err error)
+	FindExistsSongGenreByGenreId(ctx context.Context, songId, genreId int) (exists bool, err error)
+	FindSongGenres(ctx context.Context, songId, pageSize, offset int) (genres []models.Genre, err error)
+	DeleteSongGenre(ctx context.Context, songId, genreId int) (err error)
 }
 
 type GenreService interface {
@@ -31,4 +35,7 @@ type GenreService interface {
 	CreateArtistGenre(ctx context.Context, artistId, genreId int) (err error)
 	GetArtistGenres(ctx context.Context, artistId, pageSize, offset int) (genres []dto.Genre, err error)
 	DeleteArtistGenre(ctx context.Context, artistId, genreId int) (err error)
+	CreateSongGenre(ctx context.Context, songId, genreId int) (err error)
+	GetSongGenres(ctx context.Context, songId, pageSize, offset int) (genres []dto.Genre, err error)
+	DeleteSongGenre(ctx context.Context, songId, genreId int) (err error)
 }

@@ -81,11 +81,13 @@ func (svc *favoriteService) GetAllFavoriteSongsByUserId(ctx context.Context, use
 		song.Duration = result.Duration
 		song.Audio = result.Audio
 		song.Image = utils.ParseImageToJSON(result.Image)
-		song.Album = dto.Album{
-			Id:    result.Album.Id,
-			Name:  result.Album.Name,
-			Slug:  result.Album.Slug,
-			Image: utils.ParseImageToJSON(result.Album.Image),
+		song.Album = dto.AlbumWithArtist{
+			Album: dto.Album{
+				Id:    result.Album.Id,
+				Name:  result.Album.Name,
+				Slug:  result.Album.Slug,
+				Image: utils.ParseImageToJSON(result.Album.Image),
+			},
 			Artist: dto.Artist{
 				Id:    result.Album.Artist.Id,
 				Name:  result.Album.Artist.Name,

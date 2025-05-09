@@ -41,11 +41,13 @@ func (svc *songService) GetAll(ctx context.Context, pageSize int, offset int) (s
 			Audio:    v.Audio,
 			Duration: v.Duration,
 			Image:    utils.ParseImageToJSON(v.Image),
-			Album: dto.Album{
-				Id:    v.Album.Id,
-				Name:  v.Album.Name,
-				Slug:  v.Album.Slug,
-				Image: utils.ParseImageToJSON(v.Album.Image),
+			Album: dto.AlbumWithArtist{
+				Album: dto.Album{
+					Id:    v.Album.Id,
+					Name:  v.Album.Name,
+					Slug:  v.Album.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Image),
+				},
 				Artist: dto.Artist{
 					Id:    v.Album.Artist.Id,
 					Name:  v.Album.Artist.Name,
@@ -87,11 +89,13 @@ func (svc *songService) GetSongById(ctx context.Context, id int) (song dto.Song,
 	song.Audio = result.Audio
 	song.Duration = result.Duration
 	song.Image = utils.ParseImageToJSON(result.Image)
-	song.Album = dto.Album{
-		Id:    result.Album.Id,
-		Name:  result.Album.Name,
-		Slug:  result.Album.Slug,
-		Image: utils.ParseImageToJSON(result.Album.Artist.Image),
+	song.Album = dto.AlbumWithArtist{
+		Album: dto.Album{
+			Id:    result.Album.Id,
+			Name:  result.Album.Name,
+			Slug:  result.Album.Slug,
+			Image: utils.ParseImageToJSON(result.Album.Artist.Image),
+		},
 		Artist: dto.Artist{
 			Id:    result.Album.Artist.Id,
 			Name:  result.Album.Artist.Name,

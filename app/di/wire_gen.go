@@ -52,7 +52,7 @@ func InitializedApp() (*AppContainer, error) {
 	genreService := services.NewGenreService(genreRepository, artistRepository, songRepository, logrusLogger)
 	genreHandler := handlers.NewGenreHandler(genreService, logrusLogger)
 	playlistRepository := repositories.NewPlaylistRepository(db, logrusLogger)
-	playlistService := services.NewPlaylistService(playlistRepository, logrusLogger)
+	playlistService := services.NewPlaylistService(playlistRepository, songRepository, logrusLogger)
 	playlistHandler := handlers.NewPlaylistHandler(playlistService, logrusLogger)
 	favoriteRepository := repositories.NewFavoriteRepository(db, logrusLogger)
 	favoriteService := services.NewFavoriteService(favoriteRepository, songRepository, logrusLogger)

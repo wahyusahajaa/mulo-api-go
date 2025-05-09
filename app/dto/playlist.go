@@ -8,3 +8,8 @@ type Playlist struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
+
+type PlaylistWithSongs struct {
+	Playlist
+	Song []Song `json:"songs"`
+}

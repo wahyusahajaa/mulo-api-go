@@ -12,19 +12,21 @@ import (
 )
 
 type playlistService struct {
-	repo contracts.PlaylistRepository
-	log  *logrus.Logger
+	repo     contracts.PlaylistRepository
+	songRepo contracts.SongRepository
+	log      *logrus.Logger
 }
 
-func NewPlaylistService(repo contracts.PlaylistRepository, log *logrus.Logger) contracts.PlaylistService {
+func NewPlaylistService(repo contracts.PlaylistRepository, songRepo contracts.SongRepository, log *logrus.Logger) contracts.PlaylistService {
 	return &playlistService{
-		repo: repo,
-		log:  log,
+		repo:     repo,
+		songRepo: songRepo,
+		log:      log,
 	}
 }
 
-func (svc *playlistService) GetAll(ctx context.Context, pageSize int, offset int) (playlists []dto.Playlist, err error) {
-	results, err := svc.repo.FindAll(ctx, pageSize, offset)
+func (svc *playlistService) GetAll(ctx context.Context, userRole string, userId, pageSize, offset int) (playlists []dto.Playlist, err error) {
+	results, err := svc.repo.FindAll(ctx, userRole, userId, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "GetAll", err)
 		return nil, err
@@ -41,8 +43,8 @@ func (svc *playlistService) GetAll(ctx context.Context, pageSize int, offset int
 	return playlists, nil
 }
 
-func (svc *playlistService) GetPlaylistById(ctx context.Context, id int) (playlist dto.Playlist, err error) {
-	result, err := svc.repo.FindById(ctx, id)
+func (svc *playlistService) GetPlaylistById(ctx context.Context, userRole string, userId, id int) (playlist dto.Playlist, err error) {
+	result, err := svc.repo.FindById(ctx, userRole, userId, id)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "GetPlaylistById", err)
 		return playlist, err
@@ -59,8 +61,8 @@ func (svc *playlistService) GetPlaylistById(ctx context.Context, id int) (playli
 	return playlist, nil
 }
 
-func (svc *playlistService) GetCount(ctx context.Context) (total int, err error) {
-	total, err = svc.repo.FindCount(ctx)
+func (svc *playlistService) GetCount(ctx context.Context, userRole string, userId int) (total int, err error) {
+	total, err = svc.repo.FindCount(ctx, userRole, userId)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "GetCount", err)
 		return
@@ -87,18 +89,19 @@ func (svc *playlistService) CreatePlaylist(ctx context.Context, req dto.CreatePl
 	return
 }
 
-func (svc *playlistService) UpdatePlaylist(ctx context.Context, req dto.CreatePlaylistRequest, id int) (err error) {
+func (svc *playlistService) UpdatePlaylist(ctx context.Context, req dto.CreatePlaylistRequest, userRole string, userId, playlistId int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
 		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
 	}
-
-	exists, err := svc.repo.FindExistsPlaylistById(ctx, id)
+	
+	exists, err := svc.repo.FindExistsPlaylistById(ctx, userRole, userId, playlistId)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "UpdatePlaylist", err)
 		return
 	}
+
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: id}
+		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: playlistId}
 		utils.LogWarn(svc.log, ctx, "playlist_service", "UpdatePlaylist", notFoundErr)
 		return fmt.Errorf("%w", notFoundErr)
 	}
@@ -108,7 +111,7 @@ func (svc *playlistService) UpdatePlaylist(ctx context.Context, req dto.CreatePl
 		UserId: utils.GetUserId(ctx),
 	}
 
-	if err = svc.repo.Update(ctx, input, id); err != nil {
+	if err = svc.repo.Update(ctx, input, playlistId); err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "UpdatePlaylist", err)
 		return
 	}
@@ -116,21 +119,146 @@ func (svc *playlistService) UpdatePlaylist(ctx context.Context, req dto.CreatePl
 	return
 }
 
-func (svc *playlistService) DeletePlaylist(ctx context.Context, id int) (err error) {
-	exists, err := svc.repo.FindExistsPlaylistById(ctx, id)
+func (svc *playlistService) DeletePlaylist(ctx context.Context, userRole string, userId, playlistId int) (err error) {
+	exists, err := svc.repo.FindExistsPlaylistById(ctx, userRole, userId, playlistId)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "DeletePlaylist", err)
 		return
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: id}
+		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: playlistId}
 		utils.LogWarn(svc.log, ctx, "playlist_service", "DeletePlaylist", notFoundErr)
 		return fmt.Errorf("%w", notFoundErr)
 	}
 
-	if err = svc.repo.Delete(ctx, id); err != nil {
+	if err = svc.repo.Delete(ctx, userRole, userId, playlistId); err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "DeletePlaylist", err)
 		return
+	}
+
+	return
+}
+
+func (svc *playlistService) GetPlaylistSongs(ctx context.Context, role string, userId, playlistId, pageSize, offset int) (songs []dto.Song, err error) {
+	playlist, err := svc.repo.FindById(ctx, role, userId, playlistId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "GetPlaylistSongs", err)
+		return nil, err
+	}
+	if playlist == nil {
+		notfoundErr := utils.NotFoundError{Resource: "Playlist", Id: playlistId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "GetPlaylistSongs", notfoundErr)
+		return nil, fmt.Errorf("%w", notfoundErr)
+	}
+
+	results, err := svc.repo.FindPlaylistSongs(ctx, playlist.Id, pageSize, offset)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "GetPlaylistSongs", err)
+		return nil, err
+	}
+
+	songs = make([]dto.Song, 0, len(results))
+	for _, v := range results {
+		song := dto.Song{
+			Id:       v.Id,
+			Title:    v.Title,
+			Audio:    v.Audio,
+			Duration: v.Duration,
+			Image:    utils.ParseImageToJSON(v.Image),
+			Album: dto.AlbumWithArtist{
+				Album: dto.Album{
+					Id:    v.Album.Id,
+					Name:  v.Album.Name,
+					Slug:  v.Album.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Image),
+				},
+				Artist: dto.Artist{
+					Id:    v.Album.Artist.Id,
+					Name:  v.Album.Artist.Name,
+					Slug:  v.Album.Artist.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Artist.Image),
+				},
+			},
+		}
+		songs = append(songs, song)
+	}
+
+	return songs, nil
+}
+
+func (svc *playlistService) CreatePlaylistSong(ctx context.Context, userRole string, userId, playlistId, songId int) (err error) {
+	// Check existing playlist
+	exists, err := svc.repo.FindExistsPlaylistById(ctx, userRole, userId, playlistId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "CreatePlaylistSong", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: playlistId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "CreatePlaylistSong", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	// Check existing song
+	exists, err = svc.songRepo.FindExistsSongById(ctx, songId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "CreatePlaylistSong", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "Song", Id: songId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "CreatePlaylistSong", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	// Check if playlist song already exists with the same song id
+	exists, err = svc.repo.FindExistsPlaylistSong(ctx, playlistId, songId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "CreatePlaylistSong", err)
+		return err
+	}
+	if exists {
+		conflictErr := utils.ConflictError{Resource: "PlaylistSong", Field: "song_id", Value: songId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "CreatePlaylistSong", conflictErr)
+		return fmt.Errorf("%w", conflictErr)
+	}
+
+	if err := svc.repo.StorePlaylistSong(ctx, playlistId, songId); err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "CreatePlaylistSong", err)
+		return err
+	}
+
+	return
+}
+
+func (svc *playlistService) DeletePlaylistSong(ctx context.Context, userRole string, userId, playlistId, songId int) (err error) {
+	// Check existing playlist
+	exists, err := svc.repo.FindExistsPlaylistById(ctx, userRole, userId, playlistId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "DeletePlaylistSong", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "Playlist", Id: playlistId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "DeletePlaylistSong", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	// Check existing song on playlists
+	exists, err = svc.repo.FindExistsPlaylistSong(ctx, playlistId, songId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "DeletePlaylistSong", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := utils.NotFoundError{Resource: "PlaylistSong", Id: songId}
+		utils.LogWarn(svc.log, ctx, "playlist_service", "DeletePlaylistSong", notFoundErr)
+		return fmt.Errorf("%w", notFoundErr)
+	}
+
+	if err := svc.repo.DeletePlaylistSong(ctx, playlistId, songId); err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "DeletePlaylistSong", err)
+		return err
 	}
 
 	return

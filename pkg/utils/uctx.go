@@ -26,3 +26,16 @@ func GetUserId(ctx context.Context) (id int) {
 func GetRole(ctx context.Context) string {
 	return ctx.Value("role").(string)
 }
+
+func IsValidRoles(role string) bool {
+	roles := map[string]struct{}{
+		"member": {},
+		"admin":  {},
+	}
+
+	if _, ok := roles[role]; ok {
+		return true
+	}
+
+	return false
+}

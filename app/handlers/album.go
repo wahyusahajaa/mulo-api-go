@@ -106,3 +106,16 @@ func (h *AlbumHandler) DeleteAlbum(c *fiber.Ctx) error {
 		"message": "Successfully deleted album",
 	})
 }
+
+func (h *AlbumHandler) GetAlbumsByArtistId(c *fiber.Ctx) error {
+	artistId, _ := strconv.Atoi(c.Params("id"))
+
+	artists, err := h.svc.GetAlbumsByArtistId(c.Context(), artistId)
+	if err != nil {
+		return utils.HandleHTTPError(c, h.log, "album_handler", "GetAlbumsByArtistId", err)
+	}
+
+	return c.JSON(fiber.Map{
+		"data": artists,
+	})
+}

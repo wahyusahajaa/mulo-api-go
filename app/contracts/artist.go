@@ -17,6 +17,10 @@ type ArtistRepository interface {
 	Store(ctx context.Context, input models.CreateArtistInput) (err error)
 	Update(ctx context.Context, input models.CreateArtistInput, id int) (err error)
 	Delete(ctx context.Context, id int) (err error)
+	StoreArtistGenre(ctx context.Context, artistId, genreId int) (err error)
+	FindExistsArtistGenreByGenreId(ctx context.Context, artistId, genreId int) (exists bool, err error)
+	FindArtistGenres(ctx context.Context, artistId, pageSize, offset int) (genres []models.Genre, err error)
+	DeleteArtistGenre(ctx context.Context, artistId, genreId int) (err error)
 }
 
 type ArtistService interface {
@@ -27,4 +31,7 @@ type ArtistService interface {
 	GetArtistById(ctx context.Context, artistId int) (artist dto.Artist, err error)
 	UpdateArtist(ctx context.Context, req dto.CreateArtistRequest, id int) (err error)
 	DeleteArtist(ctx context.Context, id int) (err error)
+	CreateArtistGenre(ctx context.Context, artistId, genreId int) (err error)
+	GetArtistGenres(ctx context.Context, artistId, pageSize, offset int) (genres []dto.Genre, err error)
+	DeleteArtistGenre(ctx context.Context, artistId, genreId int) (err error)
 }

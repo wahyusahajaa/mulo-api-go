@@ -9,10 +9,10 @@ type CreateSongRequest struct {
 }
 
 type Song struct {
-	Id       int    `json:"id"`
-	Title    string `json:"title"`
-	Audio    string `json:"audio"`
-	Duration int    `json:"duration"`
-	Image    Image  `json:"image"`
-	Album    Album  `json:"album"`
+	Id       int             `json:"id"`
+	Title    string          `json:"title"`
+	Audio    string          `json:"audio"`
+	Duration int             `json:"duration"`
+	Image    Image           `json:"image"`
+	Album    AlbumWithArtist `json:"album"`
 }

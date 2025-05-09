@@ -12,16 +12,14 @@ import (
 )
 
 type artistService struct {
-	repo      contracts.ArtistRepository
-	genreRepo contracts.GenreRepository
-	log       *logrus.Logger
+	repo contracts.ArtistRepository
+	log  *logrus.Logger
 }
 
-func NewArtistService(repo contracts.ArtistRepository, genreRepo contracts.GenreRepository, log *logrus.Logger) contracts.ArtistService {
+func NewArtistService(repo contracts.ArtistRepository, log *logrus.Logger) contracts.ArtistService {
 	return &artistService{
-		repo:      repo,
-		genreRepo: genreRepo,
-		log:       log,
+		repo: repo,
+		log:  log,
 	}
 }
 

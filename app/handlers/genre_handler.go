@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -24,14 +25,10 @@ func NewGenreHandler(svc contracts.GenreService, log *logrus.Logger) *GenreHandl
 
 func (h *GenreHandler) GetGenres(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
-	genres, err := h.svc.GetAll(c.Context(), pageSize, offset)
-	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetGenres", err)
-	}
 
-	total, err := h.svc.GetCount(c.Context())
+	genres, total, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetGenres", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetGenres", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -46,10 +43,10 @@ func (h *GenreHandler) GetGenres(c *fiber.Ctx) error {
 
 func (h *GenreHandler) GetGenre(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
-	genre, err := h.svc.GetGenreById(c.Context(), id)
 
+	genre, err := h.svc.GetGenreById(c.Context(), id)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetGenre", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -66,10 +63,10 @@ func (h *GenreHandler) CreateGenre(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.CreateGenre(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "CreateGenre", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "CreateGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Successfully created genre",
 	})
 }
@@ -85,7 +82,7 @@ func (h *GenreHandler) UpdateGenre(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdateGenre(c.Context(), req, id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "UpdateGenre", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "UpdateGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -97,10 +94,10 @@ func (h *GenreHandler) DeleteGenre(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.svc.DeleteGenre(c.Context(), id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "DeleteGenre", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "DeleteGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{
 		"message": "Successfully Deleted genre",
 	})
 }
@@ -110,7 +107,7 @@ func (h *GenreHandler) CreateArtistGenre(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
 
 	if err := h.svc.CreateArtistGenre(c.Context(), artistId, genreId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "CreateArtistGenre", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "CreateArtistGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -124,7 +121,7 @@ func (h *GenreHandler) GetArtistGenres(c *fiber.Ctx) error {
 
 	artistGenres, err := h.svc.GetArtistGenres(c.Context(), artistId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "GetArtistGenres", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtistGenres", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -137,7 +134,7 @@ func (h *GenreHandler) DeleteArtistGenre(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
 
 	if err := h.svc.DeleteArtistGenre(c.Context(), artistId, genreId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "DeleteArtistGenre", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "DeleteArtistGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -150,7 +147,7 @@ func (h *GenreHandler) CreateSongGenre(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
 
 	if err := h.svc.CreateSongGenre(c.Context(), songId, genreId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "CreateSongGenre", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "CreateSongGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -164,7 +161,7 @@ func (h *GenreHandler) GetSongGenres(c *fiber.Ctx) error {
 
 	artistGenres, err := h.svc.GetSongGenres(c.Context(), songId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "GetSongGenres", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetSongGenres", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -177,7 +174,7 @@ func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
 
 	if err := h.svc.DeleteSongGenre(c.Context(), songId, genreId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "DeleteSongGenre", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "DeleteSongGenre", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -189,14 +186,9 @@ func (h *GenreHandler) GetArtists(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("id"))
 	page, pageSize, offset := utils.GetPaginationParam(c)
 
-	artists, err := h.svc.GetAllArtists(c.Context(), genreId, pageSize, offset)
+	artists, total, err := h.svc.GetAllArtists(c.Context(), genreId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
-	}
-
-	total, err := h.svc.GetCountArtists(c.Context(), genreId)
-	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -213,14 +205,9 @@ func (h *GenreHandler) GetSongs(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("id"))
 	page, pageSize, offset := utils.GetPaginationParam(c)
 
-	songs, err := h.svc.GetAllSongs(c.Context(), genreId, pageSize, offset)
+	songs, total, err := h.svc.GetAllSongs(c.Context(), genreId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
-	}
-
-	total, err := h.svc.GetCountSongs(c.Context(), genreId)
-	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
+		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
 	}
 
 	return c.JSON(fiber.Map{

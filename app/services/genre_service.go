@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -27,11 +27,19 @@ func NewGenreService(repo contracts.GenreRepository, artistRepo contracts.Artist
 	}
 }
 
-func (svc *genreService) GetAll(ctx context.Context, pageSize int, offset int) (genres []dto.Genre, err error) {
+func (svc *genreService) GetAll(ctx context.Context, pageSize int, offset int) (genres []dto.Genre, total int, err error) {
+	// Get genres total
+	total, err = svc.repo.FindCount(ctx)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetCount", err)
+		return
+	}
+
+	// Get List genres
 	results, err := svc.repo.FindAll(ctx, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "genre_service", "GetAll", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	genres = make([]dto.Genre, 0, len(results))
@@ -45,17 +53,7 @@ func (svc *genreService) GetAll(ctx context.Context, pageSize int, offset int) (
 		genres = append(genres, genre)
 	}
 
-	return genres, nil
-}
-
-func (svc *genreService) GetCount(ctx context.Context) (total int, err error) {
-	total, err = svc.repo.FindCount(ctx)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "genre_service", "GetCount", err)
-		return
-	}
-
-	return
+	return genres, total, nil
 }
 
 func (svc *genreService) GetGenreById(ctx context.Context, id int) (genre dto.Genre, err error) {
@@ -65,9 +63,9 @@ func (svc *genreService) GetGenreById(ctx context.Context, id int) (genre dto.Ge
 		return
 	}
 	if result == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Genre", Id: id}
-		utils.LogWarn(svc.log, ctx, "genre_service", "GetGenreById", notFoundErr)
-		return genre, fmt.Errorf("not_found: %w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Genre", "id", id)
+		utils.LogWarn(svc.log, ctx, "genre_service", "GetGenreById", nfErr)
+		return genre, nfErr
 	}
 
 	genre.Id = result.Id
@@ -78,13 +76,15 @@ func (svc *genreService) GetGenreById(ctx context.Context, id int) (genre dto.Ge
 }
 
 func (svc *genreService) CreateGenre(ctx context.Context, req dto.CreateGenreRequest) (err error) {
+	// validation failed with status bad request
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("validation: %w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
+	// image image with status bad request
 	imgByte, err := utils.ParseImageToByte(req.Image)
 	if err != nil {
-		return fmt.Errorf("parse_image: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("invalid image", map[string]string{"image": "Invali image object"})
 	}
 
 	input := models.CreateGenreInput{
@@ -97,12 +97,12 @@ func (svc *genreService) CreateGenre(ctx context.Context, req dto.CreateGenreReq
 
 func (svc *genreService) UpdateGenre(ctx context.Context, req dto.CreateGenreRequest, id int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("validation: %w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	imgByte, err := utils.ParseImageToByte(req.Image)
 	if err != nil {
-		return fmt.Errorf("parse_image: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("Invalid image", map[string]string{"image": "Invalid image object."})
 	}
 
 	exists, err := svc.repo.FindExistsGenreById(ctx, id)
@@ -112,9 +112,9 @@ func (svc *genreService) UpdateGenre(ctx context.Context, req dto.CreateGenreReq
 	}
 
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Genre", Id: id}
-		utils.LogWarn(svc.log, ctx, "genre_repo", "UpdateGenre", notFoundErr)
-		return fmt.Errorf("not_found: %w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Genre", "Id", id)
+		utils.LogWarn(svc.log, ctx, "genre_repo", "UpdateGenre", nfErr)
+		return nfErr
 	}
 
 	input := models.CreateGenreInput{
@@ -138,9 +138,9 @@ func (svc *genreService) DeleteGenre(ctx context.Context, id int) (err error) {
 	}
 
 	if !exists {
-		errNotFound := utils.NotFoundError{Resource: "Genre", Id: id}
-		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteGenre", errNotFound)
-		return fmt.Errorf("not_found: %w", errNotFound)
+		nfErr := errs.NewNotFoundError("Genre", "id", id)
+		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteGenre", nfErr)
+		return nfErr
 	}
 
 	if err = svc.repo.Delete(ctx, id); err != nil {
@@ -159,9 +159,9 @@ func (svc *genreService) CreateArtistGenre(ctx context.Context, artistId int, ge
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: artistId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "CreateArtistGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Artist", "id", artistId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "CreateArtistGenre", nfErr)
+		return nfErr
 	}
 
 	// Check existing genre
@@ -171,9 +171,9 @@ func (svc *genreService) CreateArtistGenre(ctx context.Context, artistId int, ge
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Genre", Id: genreId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "CreateArtistGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Genre", "id", genreId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "CreateArtistGenre", nfErr)
+		return nfErr
 	}
 
 	// Check if genre already exists with the same artist id
@@ -183,9 +183,9 @@ func (svc *genreService) CreateArtistGenre(ctx context.Context, artistId int, ge
 		return err
 	}
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "Genre", Field: "genre_id", Value: genreId}
+		conflictErr := errs.NewNotFoundError("Genre", "genre_id", genreId)
 		utils.LogWarn(svc.log, ctx, "genre_service", "CreateArtistGenre", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	// Store new artist genre
@@ -225,9 +225,9 @@ func (svc *genreService) DeleteArtistGenre(ctx context.Context, artistId int, ge
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "ArtistGenre", Id: artistId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteArtistGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("ArtistGenre", "id", artistId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteArtistGenre", nfErr)
+		return nfErr
 	}
 
 	if err := svc.repo.DeleteArtistGenre(ctx, artistId, genreId); err != nil {
@@ -246,9 +246,9 @@ func (svc *genreService) CreateSongGenre(ctx context.Context, songId int, genreI
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Song", Id: songId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Song", "id", songId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", nfErr)
+		return nfErr
 	}
 
 	// Check existing genre
@@ -258,9 +258,9 @@ func (svc *genreService) CreateSongGenre(ctx context.Context, songId int, genreI
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Genre", Id: genreId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("Genre", "id", genreId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", nfErr)
+		return nfErr
 	}
 
 	// Check if genre already exists with the same song id
@@ -270,9 +270,9 @@ func (svc *genreService) CreateSongGenre(ctx context.Context, songId int, genreI
 		return err
 	}
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "Genre", Field: "genre_id", Value: genreId}
+		conflictErr := errs.NewConflictError("Genre", "genre_id", genreId)
 		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	// Store new song genre
@@ -312,9 +312,9 @@ func (svc *genreService) DeleteSongGenre(ctx context.Context, songId int, genreI
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "SongGenre", Id: songId}
-		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteSongGenre", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		nfErr := errs.NewNotFoundError("SongGenre", "id", songId)
+		utils.LogWarn(svc.log, ctx, "genre_service", "DeleteSongGenre", nfErr)
+		return nfErr
 	}
 
 	if err := svc.repo.DeleteSongGenre(ctx, songId, genreId); err != nil {
@@ -325,11 +325,17 @@ func (svc *genreService) DeleteSongGenre(ctx context.Context, songId int, genreI
 	return
 }
 
-func (svc *genreService) GetAllArtists(ctx context.Context, genreId int, pageSize int, offset int) (artists []dto.Artist, err error) {
+func (svc *genreService) GetAllArtists(ctx context.Context, genreId int, pageSize int, offset int) (artists []dto.Artist, total int, err error) {
+	total, err = svc.repo.FindCountArtists(ctx, genreId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "genre_service", "GetCountArtists", err)
+		return nil, 0, err
+	}
+
 	results, err := svc.repo.FindAllArtists(ctx, genreId, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "genre_service", "GetAllArtists", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	artists = make([]dto.Artist, 0, len(results))
@@ -342,24 +348,20 @@ func (svc *genreService) GetAllArtists(ctx context.Context, genreId int, pageSiz
 		})
 	}
 
-	return artists, nil
+	return artists, total, nil
 }
 
-func (svc *genreService) GetCountArtists(ctx context.Context, genreId int) (total int, err error) {
-	total, err = svc.repo.FindCountArtists(ctx, genreId)
+func (svc *genreService) GetAllSongs(ctx context.Context, genreId int, pageSize int, offset int) (songs []dto.Song, total int, err error) {
+	total, err = svc.repo.FindCountSongs(ctx, genreId)
 	if err != nil {
-		utils.LogError(svc.log, ctx, "genre_service", "GetCountArtists", err)
-		return
+		utils.LogError(svc.log, ctx, "genre_service", "GetCountSongs", err)
+		return nil, 0, err
 	}
 
-	return
-}
-
-func (svc *genreService) GetAllSongs(ctx context.Context, genreId int, pageSize int, offset int) (songs []dto.Song, err error) {
 	results, err := svc.repo.FindAllSongs(ctx, genreId, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "genre_service", "GetAllSongs", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	songs = make([]dto.Song, 0, len(results))
@@ -389,15 +391,5 @@ func (svc *genreService) GetAllSongs(ctx context.Context, genreId int, pageSize 
 		songs = append(songs, song)
 	}
 
-	return songs, nil
-}
-
-func (svc *genreService) GetCountSongs(ctx context.Context, genreId int) (total int, err error) {
-	total, err = svc.repo.FindCountSongs(ctx, genreId)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "genre_service", "GetCountSongs", err)
-		return
-	}
-
-	return
+	return songs, total, nil
 }

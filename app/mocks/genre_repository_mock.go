@@ -40,9 +40,14 @@ func (m *MockGenreRepository) FindAllSongs(ctx context.Context, genreId int, pag
 	panic("unimplemented")
 }
 
-// FindArtistGenres implements contracts.GenreRepository.
 func (m *MockGenreRepository) FindArtistGenres(ctx context.Context, artistId int, pageSize int, offset int) (genres []models.Genre, err error) {
-	panic("unimplemented")
+	args := m.Called(ctx, artistId, pageSize, offset)
+
+	if args.Get(0) != nil {
+		genres = args.Get(0).([]models.Genre)
+	}
+
+	return genres, args.Error(1)
 }
 
 // FindCountArtists implements contracts.GenreRepository.
@@ -55,9 +60,10 @@ func (m *MockGenreRepository) FindCountSongs(ctx context.Context, genreId int) (
 	panic("unimplemented")
 }
 
-// FindExistsArtistGenreByGenreId implements contracts.GenreRepository.
 func (m *MockGenreRepository) FindExistsArtistGenreByGenreId(ctx context.Context, artistId int, genreId int) (exists bool, err error) {
-	panic("unimplemented")
+	args := m.Called(ctx, artistId, genreId)
+
+	return args.Get(0).(bool), args.Error(1)
 }
 
 func (m *MockGenreRepository) FindExistsGenreById(ctx context.Context, id int) (exists bool, err error) {
@@ -96,9 +102,10 @@ func (m *MockGenreRepository) Store(ctx context.Context, input models.CreateGenr
 	return args.Error(0)
 }
 
-// StoreArtistGenre implements contracts.GenreRepository.
 func (m *MockGenreRepository) StoreArtistGenre(ctx context.Context, artistId int, genreId int) (err error) {
-	panic("unimplemented")
+	args := m.Called(ctx, artistId, genreId)
+
+	return args.Error(0)
 }
 
 // StoreSongGenre implements contracts.GenreRepository.

@@ -515,3 +515,117 @@ func TestGenreService_DeleteGenre(t *testing.T) {
 		})
 	}
 }
+
+func TestGenreService_CreateArtistGenre(t *testing.T) {
+	type fields struct {
+		storeArtistGenreErr  error
+		artistExistsErr      error
+		artistExists         bool
+		genreExistsErr       error
+		genreExists          bool
+		artistGenreExistsErr error
+		artistGenreExists    bool
+	}
+
+	type expected struct {
+		err error
+	}
+
+	type scenario struct {
+		name     string
+		fields   fields
+		expected expected
+	}
+
+	testCases := []scenario{
+		{
+			name: "success",
+			fields: fields{
+				artistExists:        true,
+				genreExists:         true,
+				artistGenreExists:   false,
+				storeArtistGenreErr: nil,
+			},
+			expected: expected{
+				err: nil,
+			},
+		},
+		{
+			name: "artistNotFound",
+			fields: fields{
+				artistExists: false,
+			},
+			expected: expected{
+				err: errs.NewNotFoundError("Artist", "id", 1),
+			},
+		},
+		{
+			name: "genreNotFound",
+			fields: fields{
+				artistExists: true,
+				genreExists:  false,
+			},
+			expected: expected{
+				err: errs.NewNotFoundError("Genre", "id", 1),
+			},
+		},
+		{
+			name: "conflictArtistGenre",
+			fields: fields{
+				artistExists:      true,
+				genreExists:       true,
+				artistGenreExists: true,
+			},
+			expected: expected{
+				err: errs.NewConflictError("Genre", "genre_id", 1),
+			},
+		},
+		{
+			name: "storeArtistGenreError",
+			fields: fields{
+				artistExists:        true,
+				genreExists:         true,
+				artistGenreExists:   false,
+				storeArtistGenreErr: errors.New("database failure"),
+			},
+			expected: expected{
+				err: errors.New("database failure"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockGenreRepo := new(mocks.MockGenreRepository)
+			mockArtistRepo := new(mocks.MockArtistRepository)
+			svc := NewGenreService(mockGenreRepo, mockArtistRepo, nil, nil)
+			ctx := context.Background()
+
+			mockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(tc.fields.artistExists, tc.fields.artistExistsErr)
+
+			if tc.fields.artistExists && tc.fields.artistExistsErr == nil {
+				mockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(tc.fields.genreExists, tc.fields.genreExistsErr)
+			}
+
+			if tc.fields.artistExists && tc.fields.genreExists && tc.fields.genreExistsErr == nil {
+				mockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(tc.fields.artistGenreExists, tc.fields.artistGenreExistsErr)
+			}
+
+			if tc.fields.artistExists && tc.fields.genreExists && !tc.fields.artistGenreExists && tc.fields.artistGenreExistsErr == nil {
+				mockGenreRepo.On("StoreArtistGenre", mock.Anything, 1, 1).Return(tc.fields.storeArtistGenreErr)
+			}
+
+			err := svc.CreateArtistGenre(ctx, 1, 1)
+
+			if tc.expected.err == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expected.err, err)
+			}
+
+			mockArtistRepo.AssertExpectations(t)
+			mockGenreRepo.AssertExpectations(t)
+		})
+	}
+}

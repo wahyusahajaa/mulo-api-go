@@ -6,456 +6,280 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/mocks"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
-	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
-func TestGenreService_GetAll(t *testing.T) {
-	// Make json byte from dto.image
-	image1 := dto.Image{Src: "image1.png", BlurHash: "blur1"}
-	image2 := dto.Image{Src: "image2.png", BlurHash: "blur2"}
-	// Parse image to bytes
+type GenreServiceTestSuite struct {
+	suite.Suite
+	Svc            contracts.GenreService
+	MockGenreRepo  *mocks.MockGenreRepository
+	MockArtistRepo *mocks.MockArtistRepository
+	MockSongRepo   *mocks.MockSongRepository
+}
+
+func (s *GenreServiceTestSuite) SetupTest() {
+	s.MockGenreRepo = new(mocks.MockGenreRepository)
+	s.MockArtistRepo = new(mocks.MockArtistRepository)
+	s.MockSongRepo = new(mocks.MockSongRepository)
+	s.Svc = NewGenreService(s.MockGenreRepo, s.MockArtistRepo, s.MockSongRepo, nil)
+}
+
+func (s *GenreServiceTestSuite) ResetMocks() {
+	s.MockGenreRepo.ExpectedCalls = nil
+	s.MockGenreRepo.Calls = nil
+	s.MockArtistRepo.ExpectedCalls = nil
+	s.MockArtistRepo.Calls = nil
+	s.MockSongRepo.ExpectedCalls = nil
+	s.MockSongRepo.Calls = nil
+}
+
+func (s *GenreServiceTestSuite) TestGetAll() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abcd"}
+	image2 := dto.Image{Src: "image2.png", BlurHash: "cdsa"}
 	image1Bytes, _ := json.Marshal(image1)
 	image2Bytes, _ := json.Marshal(image2)
 
-	type fields struct {
-		repoCountResult int
-		repoCountErr    error
-		repoListResult  []models.Genre
-		repoListErr     error
-	}
-
 	type expected struct {
-		result []dto.Genre
-		total  int
-		err    error
+		results []dto.Genre
+		total   int
+		err     error
 	}
-
 	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
+		name        string
+		prepareMock func()
+		expected    expected
 	}
 
 	testCases := []scenario{
 		{
 			name: "success",
-			fields: fields{
-				repoCountResult: 2,
-				repoCountErr:    nil,
-				repoListResult: []models.Genre{
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCount", mock.Anything).Return(2, nil)
+				s.MockGenreRepo.On("FindAll", mock.Anything, 10, 0).Return([]models.Genre{
 					{Id: 1, Name: "Genre 1", Image: image1Bytes},
 					{Id: 2, Name: "Genre 2", Image: image2Bytes},
-				},
-				repoListErr: nil,
+				}, nil)
 			},
 			expected: expected{
-				result: []dto.Genre{
-					{Id: 1, Name: "Genre 1", Image: utils.ParseImageToJSON(image1Bytes)},
-					{Id: 2, Name: "Genre 2", Image: utils.ParseImageToJSON(image2Bytes)},
-				},
-				total: 2,
-				err:   nil,
+				results: []dto.Genre{{Id: 1, Name: "Genre 1", Image: image1}, {Id: 2, Name: "Genre 2", Image: image2}},
+				total:   2,
 			},
 		},
 		{
 			name: "findCountError",
-			fields: fields{
-				repoCountResult: 0,
-				repoCountErr:    errors.New("db connection failure"),
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCount", mock.Anything).Return(0, errors.New("database failure"))
 			},
 			expected: expected{
-				total:  0,
-				result: nil,
-				err:    errors.New("db connection failure"),
+				err: errors.New("database failure"),
 			},
 		},
 		{
 			name: "findAllError",
-			fields: fields{
-				repoCountResult: 10,
-				repoCountErr:    nil,
-				repoListResult:  nil,
-				repoListErr:     errors.New("db list error"),
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCount", mock.Anything).Return(2, nil)
+				s.MockGenreRepo.On("FindAll", mock.Anything, 10, 0).Return(nil, errors.New("database failure"))
 			},
 			expected: expected{
-				total:  0,
-				result: nil,
-				err:    errors.New("db list error"),
+				err: errors.New("database failure"),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
 
-		t.Run(tc.name, func(t *testing.T) {
-			// Arrange
-			mockRepo := new(mocks.MockGenreRepository)
-			svc := NewGenreService(mockRepo, nil, nil, nil)
+			results, total, err := s.Svc.GetAll(s.T().Context(), 10, 0)
 
-			ctx := context.Background()
-			pageSize := 10
-			offset := 0
-
-			mockRepo.On("FindCount", ctx).Return(tc.fields.repoCountResult, tc.fields.repoCountErr)
-
-			if tc.fields.repoCountErr == nil {
-				mockRepo.On("FindAll", ctx, pageSize, offset).Return(tc.fields.repoListResult, tc.fields.repoListErr)
-			}
-
-			// Actual
-			result, total, err := svc.GetAll(ctx, pageSize, offset)
-
-			// Assert
-			if tc.expected.err != nil {
-				assert.Equal(t, tc.expected.err, err)
+			if tc.expected.err == nil {
+				s.NoError(err)
+				s.Equal(tc.expected.results, results)
+				s.Equal(tc.expected.total, total)
 			} else {
-				assert.NoError(t, err)
+				s.Error(err)
+				s.EqualError(tc.expected.err, err.Error())
 			}
 
-			assert.Equal(t, tc.expected.total, total)
-			assert.Equal(t, tc.expected.result, result)
-
-			mockRepo.AssertExpectations(t)
-		})
-
-	}
-}
-
-func TestGenreService_GetGenreById(t *testing.T) {
-	type fields struct {
-		repoErr    error
-		repoResult *models.Genre
-		genreId    int
-	}
-
-	type expected struct {
-		result dto.Genre
-		err    error
-	}
-
-	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
-	}
-
-	image1 := dto.Image{Src: "image1.png", BlurHash: "image1"}
-	image1_bytes, _ := json.Marshal(image1)
-
-	testCases := []scenario{
-		{
-			name: "success",
-			fields: fields{
-				repoErr:    nil,
-				repoResult: &models.Genre{Id: 1, Name: "Genre 1", Image: image1_bytes},
-				genreId:    1,
-			},
-			expected: expected{
-				result: dto.Genre{Id: 1, Name: "Genre 1", Image: image1},
-				err:    nil,
-			},
-		},
-		{
-			name: "genreNotFound",
-			fields: fields{
-				repoErr:    errs.NewNotFoundError("Genre", "id", 1),
-				repoResult: nil,
-				genreId:    1,
-			},
-			expected: expected{
-				result: dto.Genre{},
-				err:    errs.NewNotFoundError("Genre", "id", 1),
-			},
-		},
-		{
-			name: "error",
-			fields: fields{
-				repoErr:    errors.New("database failure"),
-				repoResult: nil,
-				genreId:    1,
-			},
-			expected: expected{
-				result: dto.Genre{},
-				err:    errors.New("database failure"),
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(mocks.MockGenreRepository)
-			svc := NewGenreService(mockRepo, nil, nil, nil)
-			ctx := context.Background()
-
-			mockRepo.On("FindGenreById", mock.Anything, tc.fields.genreId).Return(tc.fields.repoResult, tc.fields.repoErr)
-			actualResult, err := svc.GetGenreById(ctx, tc.fields.genreId)
-
-			if tc.expected.err != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected.err, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expected.result, actualResult)
-			}
-
-			mockRepo.AssertExpectations(t)
+			s.MockGenreRepo.AssertExpectations(s.T())
 		})
 	}
+
 }
 
-func TestGenreService_CreateGenre(t *testing.T) {
-	image1 := dto.Image{Src: "image1.png", BlurHash: "image1"}
-	imageBytes, _ := utils.ParseImageToByte(&image1)
-	var errValidation = errors.New("validation failed")
-
-	type fields struct {
-		repoStoreErr error
-		reqDtoGenre  dto.CreateGenreRequest
-	}
-
-	type expected struct {
-		errType      error
-		valErrorMaps map[string]string
-	}
+func (s *GenreServiceTestSuite) TestGetGenreById() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abcd"}
+	image1Bytes, _ := json.Marshal(image1)
 
 	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
+		name           string
+		prepareMock    func()
+		expectedResult dto.Genre
+		expectedErr    error
 	}
 
 	testCases := []scenario{
 		{
 			name: "success",
-			fields: fields{
-				repoStoreErr: nil,
-				reqDtoGenre:  dto.CreateGenreRequest{Name: "Genre 1", Image: &image1},
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindGenreById", mock.Anything, 1).Return(&models.Genre{
+					Id:    1,
+					Name:  "Genre 1",
+					Image: image1Bytes,
+				}, nil)
 			},
-			expected: expected{
-				errType:      nil,
-				valErrorMaps: nil,
-			},
+			expectedResult: dto.Genre{Id: 1, Name: "Genre 1", Image: image1},
+			expectedErr:    nil,
 		},
 		{
-			name: "repoStoreErr",
-			fields: fields{
-				repoStoreErr: errors.New("database failure"),
-				reqDtoGenre:  dto.CreateGenreRequest{Name: "Genre 1", Image: &image1},
+			name: "FindGenreById_NotFound",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindGenreById", mock.Anything, 1).Return(nil, nil)
 			},
-			expected: expected{
-				errType:      errors.New("database failure"),
-				valErrorMaps: nil,
-			},
+			expectedErr: errs.NewNotFoundError("Genre", "id", 1),
 		},
 		{
-			name: "validationErrors_RequiredName",
-			fields: fields{
-				reqDtoGenre: dto.CreateGenreRequest{Name: "", Image: &image1},
+			name: "FindGenreById_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindGenreById", mock.Anything, 1).Return(nil, errors.New("database failure"))
 			},
-			expected: expected{
-				errType:      errValidation,
-				valErrorMaps: map[string]string{"name": "Field is required"},
-			},
-		},
-		{
-			name: "validationErrors_RequiredImage",
-			fields: fields{
-				reqDtoGenre: dto.CreateGenreRequest{Name: "Genre 1", Image: nil},
-			},
-			expected: expected{
-				errType:      errValidation,
-				valErrorMaps: map[string]string{"image": "Field is required"},
-			},
+			expectedErr: errors.New("database failure"),
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(mocks.MockGenreRepository)
-			svc := NewGenreService(mockRepo, nil, nil, nil)
-			ctx := context.Background()
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
 
-			if tc.expected.valErrorMaps == nil {
-				// convert DTO to input model
-				input := models.CreateGenreInput{
-					Name:  tc.fields.reqDtoGenre.Name,
-					Image: imageBytes,
-				}
-				mockRepo.On("Store", mock.Anything, input).Return(tc.fields.repoStoreErr)
-			}
+			result, err := s.Svc.GetGenreById(s.T().Context(), 1)
 
-			err := svc.CreateGenre(ctx, tc.fields.reqDtoGenre)
-
-			if tc.expected.errType == nil {
-				assert.NoError(t, err)
-			} else if errors.Is(tc.expected.errType, errValidation) {
-				var valErr *errs.BadRequestError
-				assert.ErrorAs(t, err, &valErr)
-				assert.Equal(t, tc.expected.valErrorMaps, valErr.Errors)
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedResult, result)
 			} else {
-				assert.Equal(t, tc.expected.errType, err)
+				s.Error(err)
+				s.EqualError(tc.expectedErr, err.Error())
 			}
 
-			mockRepo.AssertExpectations(t)
+			s.MockGenreRepo.AssertExpectations(s.T())
 		})
 	}
-
 }
 
-func TestGenreService_UpdateGenre(t *testing.T) {
-	image1 := dto.Image{Src: "image1.png", BlurHash: "abs"}
+func (s *GenreServiceTestSuite) TestCreateGenre() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abcd"}
 	image1Bytes, _ := json.Marshal(image1)
 	var errValidation = errors.New("validation failed")
 
-	type fields struct {
-		repoGenreErr    error
-		repoGenreResult bool
-		repoUpdateErr   error
-		reqDtoGenre     dto.CreateGenreRequest
-	}
-
-	type expected struct {
-		errType      error
-		valErrorMaps map[string]string
-	}
-
 	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
+		name              string
+		prepareMock       func()
+		reqDto            dto.CreateGenreRequest
+		expectedErr       error
+		expectedValErrMap map[string]string
 	}
 
 	testCases := []scenario{
 		{
 			name: "success",
-			fields: fields{
-				repoGenreErr:    nil,
-				repoUpdateErr:   nil,
-				repoGenreResult: true,
-				reqDtoGenre:     dto.CreateGenreRequest{Name: "Genre 1", Image: &image1},
+			prepareMock: func() {
+				s.MockGenreRepo.On("Store", mock.Anything, models.CreateGenreInput{
+					Name:  "Genre 1",
+					Image: image1Bytes,
+				}).Return(nil)
 			},
-			expected: expected{
-				errType:      nil,
-				valErrorMaps: nil,
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
 			},
+			expectedErr: nil,
 		},
 		{
-			name: "genreNotFound",
-			fields: fields{
-				repoGenreErr:    errs.NewNotFoundError("Genre", "Id", 1),
-				repoUpdateErr:   nil,
-				repoGenreResult: false,
-				reqDtoGenre:     dto.CreateGenreRequest{Name: "Genre 1", Image: &image1},
+			name: "storeError",
+			prepareMock: func() {
+				s.MockGenreRepo.On("Store", mock.Anything, models.CreateGenreInput{
+					Name:  "Genre 1",
+					Image: image1Bytes,
+				}).Return(errors.New("database failure"))
 			},
-			expected: expected{
-				errType:      errs.NewNotFoundError("Genre", "Id", 1),
-				valErrorMaps: nil,
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
 			},
-		},
-		{
-			name: "repoUpdateError",
-			fields: fields{
-				repoGenreErr:    nil,
-				repoUpdateErr:   errors.New("database failure"),
-				repoGenreResult: true,
-				reqDtoGenre:     dto.CreateGenreRequest{Name: "Genre 1", Image: &image1},
-			},
-			expected: expected{
-				errType:      errors.New("database failure"),
-				valErrorMaps: nil,
-			},
+			expectedErr: errors.New("database failure"),
 		},
 		{
 			name: "validationErrors_RequiredName",
-			fields: fields{
-				reqDtoGenre: dto.CreateGenreRequest{Name: "", Image: &image1},
+			reqDto: dto.CreateGenreRequest{
+				Name:  "",
+				Image: &image1,
 			},
-			expected: expected{
-				errType:      errValidation,
-				valErrorMaps: map[string]string{"name": "Field is required"},
-			},
+			expectedErr:       errValidation,
+			expectedValErrMap: map[string]string{"name": "Field is required"},
 		},
 		{
 			name: "validationErrors_RequiredImage",
-			fields: fields{
-				reqDtoGenre: dto.CreateGenreRequest{Name: "Genre 1", Image: nil},
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: nil,
 			},
-			expected: expected{
-				errType:      errValidation,
-				valErrorMaps: map[string]string{"image": "Field is required"},
-			},
+			expectedErr:       errValidation,
+			expectedValErrMap: map[string]string{"image": "Field is required"},
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(mocks.MockGenreRepository)
-			svc := NewGenreService(mockRepo, nil, nil, nil)
-			ctx := context.Background()
+		s.Run(tc.name, func() {
+			s.ResetMocks()
 
-			// Setup mock if applicable
-			if tc.expected.valErrorMaps == nil {
-				mockRepo.On("FindExistsGenreById", mock.Anything, 1).Return(tc.fields.repoGenreResult, tc.fields.repoGenreErr)
-
-				if tc.fields.repoGenreErr == nil && tc.fields.repoGenreResult {
-					// convert DTO to input model
-					input := models.CreateGenreInput{
-						Name:  tc.fields.reqDtoGenre.Name,
-						Image: image1Bytes,
-					}
-
-					mockRepo.On("Update", ctx, input, 1).Return(tc.fields.repoUpdateErr)
-				}
+			if tc.prepareMock != nil {
+				tc.prepareMock()
 			}
 
-			err := svc.UpdateGenre(ctx, tc.fields.reqDtoGenre, 1)
+			err := s.Svc.CreateGenre(context.Background(), tc.reqDto)
 
-			if tc.expected.errType == nil {
-				assert.NoError(t, err)
-			} else if errors.Is(tc.expected.errType, errValidation) {
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else if errors.Is(tc.expectedErr, errValidation) {
 				var valErr *errs.BadRequestError
-				assert.ErrorAs(t, err, &valErr)
-				assert.Equal(t, tc.expected.valErrorMaps, valErr.Errors)
+				s.ErrorAs(err, &valErr)
+				s.Equal(tc.expectedValErrMap, valErr.Errors)
 			} else {
-				assert.Equal(t, tc.expected.errType, err)
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
 			}
 
-			mockRepo.AssertExpectations(t)
+			s.MockGenreRepo.AssertExpectations(s.T())
 		})
 	}
+
 }
 
-func TestGenreService_DeleteGenre(t *testing.T) {
-	type fields struct {
-		repoDeleteErr   error
-		repoGenreErr    error
-		repoGenreResult bool
-		genreId         int
-	}
-
+func (s *GenreServiceTestSuite) TestDeleteGenre() {
 	type expected struct {
 		err error
 	}
 
 	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
+		name        string
+		prepareMock func()
+		expected    expected
 	}
 
 	testCases := []scenario{
 		{
 			name: "success",
-			fields: fields{
-				repoDeleteErr:   nil,
-				repoGenreResult: true,
-				genreId:         1,
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("Delete", mock.Anything, 1).Return(nil)
 			},
 			expected: expected{
 				err: nil,
@@ -463,11 +287,8 @@ func TestGenreService_DeleteGenre(t *testing.T) {
 		},
 		{
 			name: "genreNotFound",
-			fields: fields{
-				repoDeleteErr:   nil,
-				repoGenreErr:    errs.NewNotFoundError("Genre", "id", 1),
-				repoGenreResult: false,
-				genreId:         1,
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(false, errs.NewNotFoundError("Genre", "id", 1))
 			},
 			expected: expected{
 				err: errs.NewNotFoundError("Genre", "id", 1),
@@ -475,11 +296,9 @@ func TestGenreService_DeleteGenre(t *testing.T) {
 		},
 		{
 			name: "deleteError",
-			fields: fields{
-				repoDeleteErr:   errors.New("database failure"),
-				repoGenreErr:    nil,
-				repoGenreResult: true,
-				genreId:         1,
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("Delete", mock.Anything, 1).Return(errors.New("database failure"))
 			},
 			expected: expected{
 				err: errors.New("database failure"),
@@ -488,144 +307,212 @@ func TestGenreService_DeleteGenre(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockRepo := new(mocks.MockGenreRepository)
-			svc := NewGenreService(mockRepo, nil, nil, nil)
-
-			ctx := context.Background()
-
-			mockRepo.On("FindExistsGenreById", ctx, tc.fields.genreId).Return(tc.fields.repoGenreResult, tc.fields.repoGenreErr)
-
-			if tc.fields.repoGenreErr == nil && tc.fields.repoGenreResult {
-				mockRepo.On("Delete", ctx, tc.fields.genreId).Return(tc.fields.repoDeleteErr)
-			}
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
 
 			// Actual
-			err := svc.DeleteGenre(ctx, tc.fields.genreId)
+			err := s.Svc.DeleteGenre(context.Background(), 1)
 
 			// Assert
 			if tc.expected.err == nil {
-				assert.NoError(t, err)
+				s.NoError(err)
 			} else {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected.err, err)
+				s.Error(err)
+				s.EqualError(err, tc.expected.err.Error())
 			}
 
-			mockRepo.AssertExpectations(t)
+			s.MockGenreRepo.AssertExpectations(s.T())
 		})
 	}
 }
 
-func TestGenreService_CreateArtistGenre(t *testing.T) {
-	type fields struct {
-		storeArtistGenreErr  error
-		artistExistsErr      error
-		artistExists         bool
-		genreExistsErr       error
-		genreExists          bool
-		artistGenreExistsErr error
-		artistGenreExists    bool
-	}
-
-	type expected struct {
-		err error
-	}
+func (s *GenreServiceTestSuite) TestUpdateGenre() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abc"}
+	image1Bytes, _ := json.Marshal(image1)
+	var errValidation = errors.New("validation failed")
 
 	type scenario struct {
-		name     string
-		fields   fields
-		expected expected
+		name                string
+		reqDto              dto.CreateGenreRequest
+		prepareMock         func()
+		expectedErr         error
+		expectedValErrorMap map[string]string
 	}
 
 	testCases := []scenario{
 		{
 			name: "success",
-			fields: fields{
-				artistExists:        true,
-				genreExists:         true,
-				artistGenreExists:   false,
-				storeArtistGenreErr: nil,
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
 			},
-			expected: expected{
-				err: nil,
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("Update", mock.Anything, models.CreateGenreInput{
+					Name:  "Genre 1",
+					Image: image1Bytes,
+				}, 1).Return(nil)
 			},
+			expectedErr: nil,
 		},
 		{
-			name: "artistNotFound",
-			fields: fields{
-				artistExists: false,
+			name: "validationErrors_MissingName",
+			reqDto: dto.CreateGenreRequest{
+				Name:  "",
+				Image: &image1,
 			},
-			expected: expected{
-				err: errs.NewNotFoundError("Artist", "id", 1),
-			},
+			expectedErr:         errValidation,
+			expectedValErrorMap: map[string]string{"name": "Field is required"},
 		},
 		{
-			name: "genreNotFound",
-			fields: fields{
-				artistExists: true,
-				genreExists:  false,
+			name: "validationErrors_MissingImage",
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: nil,
 			},
-			expected: expected{
-				err: errs.NewNotFoundError("Genre", "id", 1),
-			},
+			expectedErr:         errValidation,
+			expectedValErrorMap: map[string]string{"image": "Field is required"},
 		},
 		{
-			name: "conflictArtistGenre",
-			fields: fields{
-				artistExists:      true,
-				genreExists:       true,
-				artistGenreExists: true,
+			name: "FindExistsGenreById_Error",
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
 			},
-			expected: expected{
-				err: errs.NewConflictError("Genre", "genre_id", 1),
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(false, errors.New("database failure"))
 			},
+			expectedErr: errors.New("database failure"),
 		},
 		{
-			name: "storeArtistGenreError",
-			fields: fields{
-				artistExists:        true,
-				genreExists:         true,
-				artistGenreExists:   false,
-				storeArtistGenreErr: errors.New("database failure"),
+			name: "FindExistsGenreById_NotFound",
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
 			},
-			expected: expected{
-				err: errors.New("database failure"),
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(false, nil)
 			},
+			expectedErr: errs.NewNotFoundError("Genre", "Id", 1),
+		},
+		{
+			name: "updateError",
+			reqDto: dto.CreateGenreRequest{
+				Name:  "Genre 1",
+				Image: &image1,
+			},
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("Update", mock.Anything, models.CreateGenreInput{
+					Name:  "Genre 1",
+					Image: image1Bytes,
+				}, 1).Return(errors.New("database failure"))
+			},
+			expectedErr: errors.New("database failure"),
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockGenreRepo := new(mocks.MockGenreRepository)
-			mockArtistRepo := new(mocks.MockArtistRepository)
-			svc := NewGenreService(mockGenreRepo, mockArtistRepo, nil, nil)
-			ctx := context.Background()
-
-			mockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(tc.fields.artistExists, tc.fields.artistExistsErr)
-
-			if tc.fields.artistExists && tc.fields.artistExistsErr == nil {
-				mockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(tc.fields.genreExists, tc.fields.genreExistsErr)
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			if tc.prepareMock != nil {
+				tc.prepareMock()
 			}
 
-			if tc.fields.artistExists && tc.fields.genreExists && tc.fields.genreExistsErr == nil {
-				mockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(tc.fields.artistGenreExists, tc.fields.artistGenreExistsErr)
-			}
+			err := s.Svc.UpdateGenre(s.T().Context(), tc.reqDto, 1)
 
-			if tc.fields.artistExists && tc.fields.genreExists && !tc.fields.artistGenreExists && tc.fields.artistGenreExistsErr == nil {
-				mockGenreRepo.On("StoreArtistGenre", mock.Anything, 1, 1).Return(tc.fields.storeArtistGenreErr)
-			}
-
-			err := svc.CreateArtistGenre(ctx, 1, 1)
-
-			if tc.expected.err == nil {
-				assert.NoError(t, err)
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else if errors.Is(tc.expectedErr, errValidation) {
+				var valErr *errs.BadRequestError
+				s.ErrorAs(err, &valErr)
+				s.Equal(tc.expectedValErrorMap, valErr.Errors)
 			} else {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expected.err, err)
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
 			}
 
-			mockArtistRepo.AssertExpectations(t)
-			mockGenreRepo.AssertExpectations(t)
+			s.MockGenreRepo.AssertExpectations(s.T())
 		})
 	}
+
+}
+
+func (s *GenreServiceTestSuite) TestCreateArtistGenre() {
+	type scenario struct {
+		name        string
+		prepareMock func()
+		expectedErr error
+	}
+
+	testCases := []scenario{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+				s.MockGenreRepo.On("StoreArtistGenre", mock.Anything, 1, 1).Return(nil)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "FindExistsArtistById_NotFound",
+			prepareMock: func() {
+				s.MockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("Artist", "id", 1),
+		},
+		{
+			name: "FindExistsGenreById_NotFound",
+			prepareMock: func() {
+				s.MockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("Genre", "id", 1),
+		},
+		{
+			name: "FindExistsArtistGenreByGenreId_Conflict",
+			prepareMock: func() {
+				s.MockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+			},
+			expectedErr: errs.NewConflictError("Genre", "genre_id", 1),
+		},
+		{
+			name: "StoreArtistGenre_Error",
+			prepareMock: func() {
+				s.MockArtistRepo.On("FindExistsArtistById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+				s.MockGenreRepo.On("StoreArtistGenre", mock.Anything, 1, 1).Return(errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			err := s.Svc.CreateArtistGenre(s.T().Context(), 1, 1)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockArtistRepo.AssertExpectations(s.T())
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func TestGenreServiceTestSuite(t *testing.T) {
+	suite.Run(t, new(GenreServiceTestSuite))
 }

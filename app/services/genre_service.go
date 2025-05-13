@@ -270,7 +270,7 @@ func (svc *genreService) CreateSongGenre(ctx context.Context, songId int, genreI
 		return err
 	}
 	if exists {
-		conflictErr := errs.NewConflictError("Genre", "genre_id", genreId)
+		conflictErr := errs.NewConflictError("SongGenre", "genre_id", genreId)
 		utils.LogWarn(svc.log, ctx, "genre_service", "CreateSongGenre", conflictErr)
 		return conflictErr
 	}

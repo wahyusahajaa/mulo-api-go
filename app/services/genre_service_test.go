@@ -513,6 +513,63 @@ func (s *GenreServiceTestSuite) TestCreateArtistGenre() {
 	}
 }
 
+func (s *GenreServiceTestSuite) TestGetArtistGenres() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abcd"}
+	image2 := dto.Image{Src: "image2.png", BlurHash: "bcda"}
+	image1Bytes, _ := json.Marshal(image1)
+	image2Bytes, _ := json.Marshal(image2)
+
+	type scenario struct {
+		name            string
+		prepareMock     func()
+		expectedResults []dto.Genre
+		expectedErr     error
+	}
+
+	testCases := []scenario{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindArtistGenres", mock.Anything, 1, 10, 0).Return([]models.Genre{
+					{Id: 1, Name: "Genre 1", Image: image1Bytes},
+					{Id: 2, Name: "Genre 2", Image: image2Bytes},
+				}, nil)
+			},
+			expectedResults: []dto.Genre{
+				{Id: 1, Name: "Genre 1", Image: image1},
+				{Id: 2, Name: "Genre 2", Image: image2},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindArtistGenres", mock.Anything, 1, 10, 0).Return(nil, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			results, err := s.Svc.GetArtistGenres(s.T().Context(), 1, 10, 0)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedResults, results)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
 func TestGenreServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(GenreServiceTestSuite))
 }

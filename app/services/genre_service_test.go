@@ -570,6 +570,394 @@ func (s *GenreServiceTestSuite) TestGetArtistGenres() {
 	}
 }
 
+func (s *GenreServiceTestSuite) TestDeleteArtistGenre() {
+	testCases := []struct {
+		name        string
+		prepareMock func()
+		expectedErr error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+				s.MockGenreRepo.On("DeleteArtistGenre", mock.Anything, 1, 1).Return(nil)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "FindExistsArtistGenreByGenreId_NotFound",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("ArtistGenre", "id", 1),
+		},
+		{
+			name: "DeleteArtistGenre_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsArtistGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+				s.MockGenreRepo.On("DeleteArtistGenre", mock.Anything, 1, 1).Return(errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			err := s.Svc.DeleteArtistGenre(s.T().Context(), 1, 1)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func (s *GenreServiceTestSuite) TestCreateSongGenre() {
+	testCases := []struct {
+		name        string
+		prepareMock func()
+		expectedErr error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockSongRepo.On("FindExistsSongById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+				s.MockGenreRepo.On("StoreSongGenre", mock.Anything, 1, 1).Return(nil)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "FindExistsSongById_NotFound",
+			prepareMock: func() {
+				s.MockSongRepo.On("FindExistsSongById", mock.Anything, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("Song", "id", 1),
+		},
+		{
+			name: "FindExistsGenreById_NotFound",
+			prepareMock: func() {
+				s.MockSongRepo.On("FindExistsSongById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("Genre", "id", 1),
+		},
+		{
+			name: "FindExistsSongGenreByGenreId_Conflict",
+			prepareMock: func() {
+				s.MockSongRepo.On("FindExistsSongById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+			},
+			expectedErr: errs.NewConflictError("SongGenre", "genre_id", 1),
+		},
+		{
+			name: "StoreSongGenre_Error",
+			prepareMock: func() {
+				s.MockSongRepo.On("FindExistsSongById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsGenreById", mock.Anything, 1).Return(true, nil)
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+				s.MockGenreRepo.On("StoreSongGenre", mock.Anything, 1, 1).Return(errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			err := s.Svc.CreateSongGenre(s.T().Context(), 1, 1)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockSongRepo.AssertExpectations(s.T())
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func (s *GenreServiceTestSuite) TestGetSongGenres() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abc"}
+	image1Bytes, _ := json.Marshal(image1)
+
+	testCases := []struct {
+		name            string
+		prepareMock     func()
+		expectedResults []dto.Genre
+		expectedErr     error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindSongGenres", mock.Anything, 1, 10, 0).Return([]models.Genre{{Id: 1, Name: "Genre 1", Image: image1Bytes}}, nil)
+			},
+			expectedResults: []dto.Genre{{Id: 1, Name: "Genre 1", Image: image1}},
+			expectedErr:     nil,
+		},
+		{
+			name: "error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindSongGenres", mock.Anything, 1, 10, 0).Return(nil, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			// Actual
+			results, err := s.Svc.GetSongGenres(s.T().Context(), 1, 10, 0)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedResults, results)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func (s *GenreServiceTestSuite) TestDeleteSongGenre() {
+	testCases := []struct {
+		name        string
+		prepareMock func()
+		expectedErr error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+				s.MockGenreRepo.On("DeleteSongGenre", mock.Anything, 1, 1).Return(nil)
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "FindExistsSongGenreByGenreId_NotFound",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(false, nil)
+			},
+			expectedErr: errs.NewNotFoundError("SongGenre", "id", 1),
+		},
+		{
+			name: "DeleteSongGenre_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindExistsSongGenreByGenreId", mock.Anything, 1, 1).Return(true, nil)
+				s.MockGenreRepo.On("DeleteSongGenre", mock.Anything, 1, 1).Return(errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			// Actual
+			err := s.Svc.DeleteSongGenre(s.T().Context(), 1, 1)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func (s *GenreServiceTestSuite) TestGetAllArtists() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abc"}
+	image1Bytes, _ := json.Marshal(image1)
+
+	testCases := []struct {
+		name            string
+		prepareMock     func()
+		expectedResults []dto.Artist
+		expectedTotal   int
+		expectedErr     error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountArtists", mock.Anything, 1).Return(1, nil)
+				s.MockGenreRepo.On("FindAllArtists", mock.Anything, 1, 10, 0).Return([]models.Artist{{Id: 1, Name: "Ungu", Slug: "ungu", Image: image1Bytes}}, nil)
+			},
+			expectedResults: []dto.Artist{{Id: 1, Name: "Ungu", Slug: "ungu", Image: image1}},
+			expectedTotal:   1,
+			expectedErr:     nil,
+		},
+		{
+			name: "FindCountArtists_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountArtists", mock.Anything, 1).Return(1, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+		{
+			name: "FindAllArtists_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountArtists", mock.Anything, 1).Return(1, nil)
+				s.MockGenreRepo.On("FindAllArtists", mock.Anything, 1, 10, 0).Return(nil, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			// Actual
+			results, total, err := s.Svc.GetAllArtists(s.T().Context(), 1, 10, 0)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedResults, results)
+				s.Equal(tc.expectedTotal, total)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
+func (s *GenreServiceTestSuite) TestGetAllSongs() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abc"}
+	image1Bytes, _ := json.Marshal(image1)
+
+	testCases := []struct {
+		name            string
+		prepareMock     func()
+		expectedResults []dto.Song
+		expectedTotal   int
+		expectedErr     error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountSongs", mock.Anything, 1).Return(1, nil)
+				s.MockGenreRepo.On("FindAllSongs", mock.Anything, 1, 10, 0).Return([]models.Song{
+					{
+						Id:       1,
+						AlbumId:  1,
+						Title:    "Aku pulang",
+						Audio:    "aukupulang.mp4",
+						Duration: 352,
+						Image:    image1Bytes,
+						Album: models.AlbumWithArtist{
+							Album: models.Album{
+								Id:       1,
+								ArtistId: 1,
+								Name:     "Aku pulang",
+								Slug:     "aku-pulang",
+								Image:    image1Bytes,
+							},
+							Artist: models.Artist{
+								Id:    1,
+								Name:  "Ungu",
+								Slug:  "ungu",
+								Image: image1Bytes,
+							},
+						},
+					},
+				}, nil)
+
+			},
+			expectedResults: []dto.Song{
+				{
+					Id:       1,
+					Title:    "Aku pulang",
+					Audio:    "aukupulang.mp4",
+					Duration: 352,
+					Image:    image1,
+					Album: dto.AlbumWithArtist{
+						Album: dto.Album{
+							Id:    1,
+							Name:  "Aku pulang",
+							Slug:  "aku-pulang",
+							Image: image1,
+						},
+						Artist: dto.Artist{
+							Id:    1,
+							Name:  "Ungu",
+							Slug:  "ungu",
+							Image: image1,
+						},
+					},
+				},
+			},
+			expectedTotal: 1,
+			expectedErr:   nil,
+		},
+		{
+			name: "FindCountSongs_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountSongs", mock.Anything, 1).Return(0, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+		{
+			name: "FindAllSongs_Error",
+			prepareMock: func() {
+				s.MockGenreRepo.On("FindCountSongs", mock.Anything, 1).Return(1, nil)
+				s.MockGenreRepo.On("FindAllSongs", mock.Anything, 1, 10, 0).Return(nil, errors.New("db failure"))
+			},
+			expectedErr: errors.New("db failure"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			// Actual
+			results, total, err := s.Svc.GetAllSongs(s.T().Context(), 1, 10, 0)
+
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedResults, results)
+				s.Equal(tc.expectedTotal, total)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.MockGenreRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
 func TestGenreServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(GenreServiceTestSuite))
 }

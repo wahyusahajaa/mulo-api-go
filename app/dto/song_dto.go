@@ -6,7 +6,7 @@ type CreateSongRequest struct {
 	Audio    string `json:"audio" validate:"required"`
 	Duration int    `json:"duration" validate:"required"`
 	Image    *Image `json:"image" validate:"required"`
-}
+} // @name CreateSongRequest
 
 type Song struct {
 	Id       int             `json:"id"`
@@ -15,4 +15,4 @@ type Song struct {
 	Duration int             `json:"duration"`
 	Image    Image           `json:"image"`
 	Album    AlbumWithArtist `json:"album"`
-}
+} // @name Song

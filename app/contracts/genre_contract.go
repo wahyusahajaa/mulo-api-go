@@ -60,7 +60,7 @@ type GenreService interface {
 
 	// DeleteGenre remove a genre by ID.
 	//  Returns:
-	//   204 No Content on success.
+	//   200 OK: on success.
 	//   404 Not Found: if genre is missing.
 	//   500 Internal Server Error: on failure.
 	DeleteGenre(ctx context.Context, id int) (err error)
@@ -81,7 +81,7 @@ type GenreService interface {
 
 	// DeleteArtistGenre remove genre from artist genre by artist and genre ID.
 	//  Returns:
-	//   204 No Content: on success.
+	//   200 OK: on success.
 	//   404 Not Found: if artist genre is missing.
 	//   500 Internal Server Error: on failure.
 	DeleteArtistGenre(ctx context.Context, artistId, genreId int) (err error)
@@ -102,7 +102,7 @@ type GenreService interface {
 
 	// DeleteSongGenre remove genre from song genre by song and genre ID.
 	//  Returns:
-	//   204 No Content: on success.
+	//   200 OK: on success.
 	//   404 Not Found: if song genre is missing.
 	//   500 Internal Server Error: on failure.
 	DeleteSongGenre(ctx context.Context, songId, genreId int) (err error)

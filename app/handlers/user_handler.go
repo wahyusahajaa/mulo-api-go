@@ -79,7 +79,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	})
 }
 
-// UpdateUser		Delete an existing user.
+// UpdateUser		Update an existing user.
 // @Summary 		Update user
 // @Description 	Updates the user with the specified ID
 // @Tags        	users

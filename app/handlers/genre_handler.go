@@ -23,6 +23,17 @@ func NewGenreHandler(svc contracts.GenreService, log *logrus.Logger) *GenreHandl
 	}
 }
 
+// GetGenres		Get paginated list of genres
+// @Summary      	List Genres
+// @Description  	Get paginated list of genres
+// @Tags         	genres
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Genre, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/genres [get]
 func (h *GenreHandler) GetGenres(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
 
@@ -31,9 +42,9 @@ func (h *GenreHandler) GetGenres(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetGenres", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": genres,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Genre, dto.Pagination]{
+		Data: genres,
+		Pagination: dto.Pagination{
 			Page:     page,
 			PageSize: pageSize,
 			Total:    total,
@@ -41,6 +52,17 @@ func (h *GenreHandler) GetGenres(c *fiber.Ctx) error {
 	})
 }
 
+// GetGenre			Get a Genre by their ID
+// @Summary      	Get Genre by ID
+// @Description  	Get a Genre by their ID
+// @Tags        	genres
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	id		path     	int	true  "Genre ID"
+// @Success 		200		{object} 	dto.ResponseWithData[dto.Genre]
+// @Failure 		404 	{object} 	dto.ErrorResponse "Genre not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router       	/genres/{id} [get]
 func (h *GenreHandler) GetGenre(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
@@ -49,11 +71,23 @@ func (h *GenreHandler) GetGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": genre,
+	return c.JSON(dto.ResponseWithData[dto.Genre]{
+		Data: genre,
 	})
 }
 
+// CreateGenre		Create a new genre.
+// @Summary 		Create genre
+// @Description 	Create a new genre.
+// @Tags        	genres
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			genre	 body		dto.CreateGenreRequest true "Genre object that needs to be created"
+// @Success 		201 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/genres [post]
 func (h *GenreHandler) CreateGenre(c *fiber.Ctx) error {
 	var req dto.CreateGenreRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -66,11 +100,25 @@ func (h *GenreHandler) CreateGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "CreateGenre", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Successfully created genre",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully created genre",
 	})
 }
 
+// UpdateGenre		Update an existing genre.
+// @Summary 		Update genre
+// @Description 	Update the genre with the specified ID
+// @Tags        	genres
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Genre ID"
+// @Param 			genre	body		dto.CreateGenreRequest true "Genre object that needs to be updated"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404 	{object} 	dto.ErrorResponse "Genre not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/genres/{id} [put]
 func (h *GenreHandler) UpdateGenre(c *fiber.Ctx) error {
 	var req dto.CreateGenreRequest
 	id, _ := strconv.Atoi(c.Params("id"))
@@ -85,11 +133,23 @@ func (h *GenreHandler) UpdateGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "UpdateGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully updated genre",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully updated genre",
 	})
 }
 
+// DeleteGenre		Delete an existing genre.
+// @Summary 		Delete genre
+// @Description 	Delete the genre with the specified ID
+// @Tags        	genres
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id path int true "Genre ID"
+// @Success 		200		{object} 	dto.ResponseMessage
+// @Failure 		404 	{object} 	dto.ErrorResponse "Genre not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/genres/{id} [delete]
 func (h *GenreHandler) DeleteGenre(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
@@ -97,8 +157,8 @@ func (h *GenreHandler) DeleteGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "DeleteGenre", err)
 	}
 
-	return c.Status(fiber.StatusNoContent).JSON(fiber.Map{
-		"message": "Successfully Deleted genre",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted genre.",
 	})
 }
 
@@ -182,6 +242,18 @@ func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {
 	})
 }
 
+// GetArtists		Get paginated list of artists by genre
+// @Summary      	List of artists by genre
+// @Description  	Get paginated list of artists by genre
+// @Tags         	genres
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param 			id 			path int true "Genre ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Artist, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/genres/{id}/artists [get]
 func (h *GenreHandler) GetArtists(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("id"))
 	page, pageSize, offset := utils.GetPaginationParam(c)
@@ -191,9 +263,9 @@ func (h *GenreHandler) GetArtists(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetArtists", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": artists,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Artist, dto.Pagination]{
+		Data: artists,
+		Pagination: dto.Pagination{
 			Page:     page,
 			PageSize: pageSize,
 			Total:    total,
@@ -201,6 +273,18 @@ func (h *GenreHandler) GetArtists(c *fiber.Ctx) error {
 	})
 }
 
+// GetSongs			Get paginated list of songs by genre
+// @Summary      	List of songs by genre
+// @Description  	Get paginated list of songs by genre
+// @Tags         	genres
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param 			id 			path int true "Genre ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Song, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/genres/{id}/songs [get]
 func (h *GenreHandler) GetSongs(c *fiber.Ctx) error {
 	genreId, _ := strconv.Atoi(c.Params("id"))
 	page, pageSize, offset := utils.GetPaginationParam(c)
@@ -210,9 +294,9 @@ func (h *GenreHandler) GetSongs(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "genre_handler", "GetSongs", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": songs,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Song, dto.Pagination]{
+		Data: songs,
+		Pagination: dto.Pagination{
 			Page:     page,
 			PageSize: pageSize,
 			Total:    total,

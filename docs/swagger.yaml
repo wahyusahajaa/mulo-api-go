@@ -1,5 +1,39 @@
 basePath: /v1
 definitions:
+  AlbumWithArtist:
+    properties:
+      artist:
+        $ref: '#/definitions/Artist'
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  Artist:
+    properties:
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  CreateGenreRequest:
+    properties:
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+    required:
+    - image
+    - name
+    type: object
   CreateUserInput:
     properties:
       full_name:
@@ -12,6 +46,15 @@ definitions:
   ErrorResponse:
     properties:
       message:
+        type: string
+    type: object
+  Genre:
+    properties:
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      name:
         type: string
     type: object
   Image:
@@ -44,10 +87,42 @@ definitions:
       message:
         type: string
     type: object
+  ResponseWithData-Genre:
+    properties:
+      data:
+        $ref: '#/definitions/Genre'
+    type: object
   ResponseWithData-User:
     properties:
       data:
         $ref: '#/definitions/User'
+    type: object
+  ResponseWithPagination-array_Artist-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Artist'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
+    type: object
+  ResponseWithPagination-array_Genre-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Genre'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
+    type: object
+  ResponseWithPagination-array_Song-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Song'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
     type: object
   ResponseWithPagination-array_User-Pagination:
     properties:
@@ -57,6 +132,21 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/Pagination'
+    type: object
+  Song:
+    properties:
+      album:
+        $ref: '#/definitions/AlbumWithArtist'
+      audio:
+        type: string
+      duration:
+        type: integer
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      title:
+        type: string
     type: object
   User:
     properties:
@@ -89,6 +179,236 @@ info:
   title: Mulo Music Streaming API
   version: "1.0"
 paths:
+  /genres:
+    get:
+      description: Get paginated list of genres
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Genre-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Genres
+      tags:
+      - genres
+    post:
+      consumes:
+      - application/json
+      description: Create a new genre.
+      parameters:
+      - description: Genre object that needs to be created
+        in: body
+        name: genre
+        required: true
+        schema:
+          $ref: '#/definitions/CreateGenreRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create genre
+      tags:
+      - genres
+  /genres/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the genre with the specified ID
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: Genre not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete genre
+      tags:
+      - genres
+    get:
+      description: Get a Genre by their ID
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-Genre'
+        "404":
+          description: Genre not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Genre by ID
+      tags:
+      - genres
+    put:
+      consumes:
+      - application/json
+      description: Update the genre with the specified ID
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre object that needs to be updated
+        in: body
+        name: genre
+        required: true
+        schema:
+          $ref: '#/definitions/CreateGenreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Genre not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update genre
+      tags:
+      - genres
+  /genres/{id}/artists:
+    get:
+      description: Get paginated list of artists by genre
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Artist-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of artists by genre
+      tags:
+      - genres
+  /genres/{id}/songs:
+    get:
+      description: Get paginated list of songs by genre
+      parameters:
+      - description: Genre ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Song-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of songs by genre
+      tags:
+      - genres
   /ping:
     get:
       description: Returns pong

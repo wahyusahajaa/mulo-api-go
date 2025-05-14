@@ -2,7 +2,9 @@ package routers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
+	_ "github.com/wahyusahajaa/mulo-api-go/docs"
 )
 
 func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.App {
@@ -17,6 +19,9 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Welcome to Mulo")
 	})
+
+	app.Get("/swagger/*", swagger.HandlerDefault)
+	v1.Get("/ping", Ping)
 
 	authGroup := v1.Group("auth")
 
@@ -94,4 +99,14 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Delete("/favorites/songs/:songId", h.Favorite.DeleteFavoriteSong)
 
 	return app
+}
+
+// Ping godoc
+// @Summary      Health Check
+// @Description  Returns pong
+// @Tags         health
+// @Success      200 {object} string
+// @Router       /ping [get]
+func Ping(c *fiber.Ctx) error {
+	return c.SendString("pong")
 }

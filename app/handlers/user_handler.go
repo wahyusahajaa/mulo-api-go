@@ -63,6 +63,7 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 // @Produce      	json
 // @Param        	id		path     	int	true  "User ID"
 // @Success 		200		{object} 	dto.ResponseWithData[dto.User]
+// @Failure 		404 	{object} 	dto.ErrorResponse "User not found"
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router       	/users/{id} [get]
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
@@ -82,6 +83,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 // @Summary 		Update user
 // @Description 	Updates the user with the specified ID
 // @Tags        	users
+// @Security     	BearerAuth
 // @Accept 			json
 // @Produce 		json
 // @Param 			id path int true "User ID"
@@ -114,6 +116,7 @@ func (h *UserHandler) Update(c *fiber.Ctx) error {
 // @Summary 		Delete user
 // @Description 	Deletes the user with the specified ID
 // @Tags        	users
+// @Security     	BearerAuth
 // @Accept 			json
 // @Produce 		json
 // @Param 			id path int true "User ID"

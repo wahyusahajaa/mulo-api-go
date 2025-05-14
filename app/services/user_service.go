@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -63,9 +63,9 @@ func (svc *userService) GetUserById(ctx context.Context, userId int) (user dto.U
 		return user, err
 	}
 	if result == nil {
-		notFoundErr := utils.NotFoundError{Resource: "User", Id: userId}
+		notFoundErr := errs.NewNotFoundError("User", "id", userId)
 		utils.LogWarn(svc.log, ctx, "user_service", "GetUserById", notFoundErr)
-		return user, fmt.Errorf("%w", notFoundErr)
+		return user, notFoundErr
 	}
 
 	user = dto.User{
@@ -81,12 +81,12 @@ func (svc *userService) GetUserById(ctx context.Context, userId int) (user dto.U
 
 func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, userId int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	imgByte, err := utils.ParseImageToByte(req.Image)
 	if err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("validation failed", map[string]string{"image": "Invalid image object"})
 	}
 
 	exists, err := svc.repo.FindExistsUserById(ctx, userId)
@@ -95,9 +95,9 @@ func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, use
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "User", Id: userId}
+		notFoundErr := errs.NewNotFoundError("User", "id", userId)
 		utils.LogWarn(svc.log, ctx, "user_service", "Update", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	input := models.CreateUserInput{
@@ -120,9 +120,9 @@ func (svc *userService) Delete(ctx context.Context, userId int) (err error) {
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "User", Id: userId}
+		notFoundErr := errs.NewNotFoundError("User", "id", userId)
 		utils.LogWarn(svc.log, ctx, "user_service", "Delete", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	if err := svc.repo.Delete(ctx, userId); err != nil {

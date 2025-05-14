@@ -113,6 +113,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/ResponseWithData-User"
                         }
                     },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
@@ -122,6 +128,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates the user with the specified ID",
                 "consumes": [
                     "application/json"
@@ -179,6 +190,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes the user with the specified ID",
                 "consumes": [
                     "application/json"
@@ -361,8 +377,8 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:3000",
-	BasePath:         "",
-	Schemes:          []string{},
+	BasePath:         "/v1",
+	Schemes:          []string{"http", "https"},
 	Title:            "Mulo Music Streaming API",
 	Description:      "This documentation for access Mulo Music Streaming",
 	InfoInstanceName: "swagger",

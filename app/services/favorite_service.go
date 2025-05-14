@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -31,9 +31,9 @@ func (svc *favoriteService) CreateFavoriteSong(ctx context.Context, userId int, 
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Song", Id: songId}
+		notFoundErr := errs.NewNotFoundError("Song", "id", songId)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	exists, err = svc.favRepo.FindExistsFavoriteSongBySongId(ctx, userId, songId)
@@ -43,9 +43,9 @@ func (svc *favoriteService) CreateFavoriteSong(ctx context.Context, userId int, 
 	}
 
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "Favorite", Field: "song_id", Value: songId}
+		conflictErr := errs.NewConflictError("Favorite", "song_id", songId)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	if err = svc.favRepo.StoreFavoriteSong(ctx, userId, songId); err != nil {
@@ -109,9 +109,9 @@ func (svc *favoriteService) DeleteFavoriteSong(ctx context.Context, userId int, 
 		return
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Song", Id: songId}
+		notFoundErr := errs.NewNotFoundError("Song", "id", songId)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "DeleteFavoriteSong", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	if err = svc.favRepo.DeleteFavoriteSong(ctx, userId, songId); err != nil {

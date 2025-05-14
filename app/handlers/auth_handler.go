@@ -5,6 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -30,7 +31,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.Register(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "auth_handler", "Register", err)
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "Register", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -49,7 +50,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	token, err := h.svc.Login(c.Context(), req)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "auth_handler", "Login", err)
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "Login", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -69,7 +70,7 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.VerifyEmail(c.Context(), req, userId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "auth_handler", "VerifyEmail", err)
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "VerifyEmail", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -81,7 +82,7 @@ func (h *AuthHandler) ResendCodeEmailVerification(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := h.svc.ResendCode(c.Context(), userId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "auth_handler", "ResendCodeEmailVerification", err)
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "ResendCodeEmailVerification", err)
 	}
 
 	return c.JSON(fiber.Map{

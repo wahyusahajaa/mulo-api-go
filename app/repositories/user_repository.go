@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -93,7 +94,7 @@ func (repo *userRepository) FindUserById(ctx context.Context, userId int) (user 
 		&user.EmailVerifiedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserById", utils.NotFoundError{Resource: "User", Id: userId})
+			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserById", errs.NewNotFoundError("User", "id", userId))
 			return nil, nil
 		}
 

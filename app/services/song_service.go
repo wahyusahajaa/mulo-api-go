@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -79,9 +79,9 @@ func (svc *songService) GetSongById(ctx context.Context, id int) (song dto.Song,
 	}
 
 	if result == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Song", Id: id}
+		notFoundErr := errs.NewNotFoundError("Song", "id", id)
 		utils.LogWarn(svc.log, ctx, "song_service", "GetSongById", notFoundErr)
-		return song, fmt.Errorf("not_found: %w", notFoundErr)
+		return song, notFoundErr
 	}
 
 	song.Id = result.Id
@@ -109,12 +109,7 @@ func (svc *songService) GetSongById(ctx context.Context, id int) (song dto.Song,
 
 func (svc *songService) CreateSong(ctx context.Context, req dto.CreateSongRequest) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("validation: %w", utils.BadReqError{Errors: errorsMap})
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	exists, err := svc.albumRepo.FindExistsAlbumById(ctx, req.AlbumId)
@@ -123,9 +118,9 @@ func (svc *songService) CreateSong(ctx context.Context, req dto.CreateSongReques
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Album", Id: req.AlbumId}
+		notFoundErr := errs.NewNotFoundError("Album", "id", req.AlbumId)
 		utils.LogWarn(svc.log, ctx, "song_service", "CreateSong", notFoundErr)
-		return fmt.Errorf("not_found: %w", notFoundErr)
+		return notFoundErr
 	}
 
 	input := models.CreateSongInput{
@@ -133,7 +128,7 @@ func (svc *songService) CreateSong(ctx context.Context, req dto.CreateSongReques
 		Title:    req.Title,
 		Audio:    req.Audio,
 		Duration: req.Duration,
-		Image:    imgByte,
+		Image:    utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.songRepo.Store(ctx, input); err != nil {
@@ -146,12 +141,7 @@ func (svc *songService) CreateSong(ctx context.Context, req dto.CreateSongReques
 
 func (svc *songService) UpdateSong(ctx context.Context, req dto.CreateSongRequest, id int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("validation: %w", utils.BadReqError{Errors: errorsMap})
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("transform: %w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	exists, err := svc.songRepo.FindExistsSongById(ctx, id)
@@ -160,7 +150,9 @@ func (svc *songService) UpdateSong(ctx context.Context, req dto.CreateSongReques
 		return err
 	}
 	if !exists {
-		return fmt.Errorf("not_found: %w", utils.NotFoundError{Resource: "Song", Id: id})
+		notFoundErr := errs.NewNotFoundError("Song", "id", id)
+		utils.LogError(svc.log, ctx, "song_service", "UpdateSong", notFoundErr)
+		return notFoundErr
 	}
 
 	exists, err = svc.albumRepo.FindExistsAlbumById(ctx, req.AlbumId)
@@ -169,9 +161,9 @@ func (svc *songService) UpdateSong(ctx context.Context, req dto.CreateSongReques
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Album", Id: req.AlbumId}
+		notFoundErr := errs.NewNotFoundError("Album", "id", req.AlbumId)
 		utils.LogWarn(svc.log, ctx, "song_service", "UpdateSong", notFoundErr)
-		return fmt.Errorf("not_found: %w", notFoundErr)
+		return notFoundErr
 	}
 
 	input := models.CreateSongInput{
@@ -179,7 +171,7 @@ func (svc *songService) UpdateSong(ctx context.Context, req dto.CreateSongReques
 		Title:    req.Title,
 		Audio:    req.Audio,
 		Duration: req.Duration,
-		Image:    imgByte,
+		Image:    utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.songRepo.Update(ctx, input, id); err != nil {
@@ -197,9 +189,9 @@ func (svc *songService) DeleteSong(ctx context.Context, id int) (err error) {
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Song", Id: id}
+		notFoundErr := errs.NewNotFoundError("Song", "id", id)
 		utils.LogWarn(svc.log, ctx, "song_service", "DeleteSong", notFoundErr)
-		return fmt.Errorf("not_found: %w", notFoundErr)
+		return notFoundErr
 	}
 
 	if err := svc.songRepo.Delete(ctx, id); err != nil {

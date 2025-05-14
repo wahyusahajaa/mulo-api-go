@@ -37,13 +37,13 @@ func ParseImageToJSON(img []byte) dto.Image {
 }
 
 // Parse image from json to byte
-func ParseImageToByte(image *dto.Image) (imgByte []byte, err error) {
+func ParseImageToByte(image *dto.Image) (imgByte []byte) {
 	if image != nil {
-		imgByte, err = json.Marshal(image)
+		imgByte, _ = json.Marshal(image)
 		return
 	}
 
-	return nil, nil
+	return nil
 }
 
 // Parse request body for check json input

@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -28,12 +29,12 @@ func (h *FavoriteHandler) GetFavoriteSongsByUserId(c *fiber.Ctx) error {
 
 	songs, err := h.svc.GetAllFavoriteSongsByUserId(c.Context(), userId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
 	}
 
 	total, err := h.svc.GetCountFavoriteSongsByUserId(c.Context(), userId)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -51,7 +52,7 @@ func (h *FavoriteHandler) CreateFavoriteSong(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := h.svc.CreateFavoriteSong(c.Context(), userId, songId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "favorite_handler", "CreateFavoriteSong", err)
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "CreateFavoriteSong", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -64,7 +65,7 @@ func (h *FavoriteHandler) DeleteFavoriteSong(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := h.svc.DeleteFavoriteSong(c.Context(), userId, songId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "favorite_handler", "DeleteFavoriteSong", err)
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "DeleteFavoriteSong", err)
 	}
 
 	return c.JSON(fiber.Map{

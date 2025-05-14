@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -78,7 +79,7 @@ func (repo *genreRepository) FindGenreById(ctx context.Context, id int) (genre *
 	if err := repo.db.QueryRowContext(ctx, query, id).Scan(&genre.Id, &genre.Name, &genre.Image); err != nil {
 
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "genre_repo", "FindGenreById", utils.NotFoundError{Resource: "Genre", Id: id})
+			utils.LogWarn(repo.log, ctx, "genre_repo", "FindGenreById", errs.NewNotFoundError("Genre", "id", id))
 			return nil, nil
 		}
 

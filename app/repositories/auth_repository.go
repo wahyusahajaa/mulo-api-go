@@ -10,6 +10,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -109,7 +110,7 @@ func (repo *authRepository) FindUserByEmail(ctx context.Context, email string) (
 		&user.EmailVerifiedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserByEmail", utils.NotFoundErrorWithCustomField{Resource: "User", Field: "email", Value: email})
+			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserByEmail", errs.NewNotFoundError("User", "email", email))
 			return nil, nil
 		}
 
@@ -137,7 +138,7 @@ func (repo *authRepository) FindUserVerifiedByUserIdAndCode(ctx context.Context,
 	userVerified = &models.UserVerified{}
 	if err = repo.db.QueryRowContext(ctx, query, userId, code).Scan(&userVerified.Code, &userVerified.ExpiredAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserVerifiedByUserIdAndCode", utils.NotFoundErrorWithCustomField{Resource: "UserVerified", Field: "code", Value: code})
+			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserVerifiedByUserIdAndCode", errs.NewNotFoundError("UserVerified", "code", code))
 			return nil, nil
 		}
 

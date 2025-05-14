@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -72,7 +73,7 @@ func (repo *playlistRepository) FindById(ctx context.Context, role string, userI
 	playlist = &models.Playlist{}
 	if err = repo.db.QueryRowContext(ctx, query, args...).Scan(&playlist.Id, &playlist.Name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "playlist_repo", "FindById", utils.NotFoundError{Resource: "Playlist", Id: id})
+			utils.LogWarn(repo.log, ctx, "playlist_repo", "FindById", errs.NewNotFoundError("Playlist", "id", id))
 			return nil, nil
 		}
 

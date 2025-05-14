@@ -81,15 +81,9 @@ func (svc *genreService) CreateGenre(ctx context.Context, req dto.CreateGenreReq
 		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
-	// image image with status bad request
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return errs.NewBadRequestError("invalid image", map[string]string{"image": "Invali image object"})
-	}
-
 	input := models.CreateGenreInput{
 		Name:  req.Name,
-		Image: imgByte,
+		Image: utils.ParseImageToByte(req.Image),
 	}
 
 	return svc.repo.Store(ctx, input)
@@ -98,11 +92,6 @@ func (svc *genreService) CreateGenre(ctx context.Context, req dto.CreateGenreReq
 func (svc *genreService) UpdateGenre(ctx context.Context, req dto.CreateGenreRequest, id int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
 		return errs.NewBadRequestError("validation failed", errorsMap)
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return errs.NewBadRequestError("Invalid image", map[string]string{"image": "Invalid image object."})
 	}
 
 	exists, err := svc.repo.FindExistsGenreById(ctx, id)
@@ -119,7 +108,7 @@ func (svc *genreService) UpdateGenre(ctx context.Context, req dto.CreateGenreReq
 
 	input := models.CreateGenreInput{
 		Name:  req.Name,
-		Image: imgByte,
+		Image: utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Update(ctx, input, id); err != nil {

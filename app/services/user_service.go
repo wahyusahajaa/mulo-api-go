@@ -84,11 +84,6 @@ func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, use
 		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return errs.NewBadRequestError("validation failed", map[string]string{"image": "Invalid image object"})
-	}
-
 	exists, err := svc.repo.FindExistsUserById(ctx, userId)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "Update", err)
@@ -102,7 +97,7 @@ func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, use
 
 	input := models.CreateUserInput{
 		Fullname: req.Fullname,
-		Image:    imgByte,
+		Image:    utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Update(ctx, input, userId); err != nil {

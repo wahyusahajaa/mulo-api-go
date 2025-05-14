@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -27,12 +28,12 @@ func (h *AlbumHandler) GetAlbums(c *fiber.Ctx) error {
 
 	albums, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "GetAlbums", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "GetAlbums", err)
 	}
 
 	total, err := h.svc.GetCount(c.Context())
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "GetAlbums", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "GetAlbums", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -50,7 +51,7 @@ func (h *AlbumHandler) GetAlbum(c *fiber.Ctx) error {
 
 	album, err := h.svc.GetAlbumById(c.Context(), id)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "GetAlbum", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "GetAlbum", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -68,7 +69,7 @@ func (h *AlbumHandler) CreateAlbum(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.CreateAlbum(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "CreateAlbum", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "CreateAlbum", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -87,7 +88,7 @@ func (h *AlbumHandler) UpdateAlbum(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdateAlbum(c.Context(), req, id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "UpdateAlbum", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "UpdateAlbum", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -99,7 +100,7 @@ func (h *AlbumHandler) DeleteAlbum(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.svc.DeleteAlbum(c.Context(), id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "DeleteAlbum", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "DeleteAlbum", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -112,7 +113,7 @@ func (h *AlbumHandler) GetAlbumsByArtistId(c *fiber.Ctx) error {
 
 	artists, err := h.svc.GetAlbumsByArtistId(c.Context(), artistId)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "album_handler", "GetAlbumsByArtistId", err)
+		return errs.HandleHTTPError(c, h.log, "album_handler", "GetAlbumsByArtistId", err)
 	}
 
 	return c.JSON(fiber.Map{

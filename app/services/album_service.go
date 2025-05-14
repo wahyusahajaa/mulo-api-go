@@ -8,6 +8,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -87,9 +88,9 @@ func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.Al
 		return album, err
 	}
 	if result == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Album", Id: id}
+		notFoundErr := errs.NewNotFoundError("Album", "id", id)
 		utils.LogWarn(svc.log, ctx, "album_service", "GetAlbumById", notFoundErr)
-		return album, fmt.Errorf("%w", notFoundErr)
+		return album, notFoundErr
 	}
 
 	album = dto.AlbumWithArtist{
@@ -122,12 +123,7 @@ func (svc *albumService) GetCount(ctx context.Context) (total int, err error) {
 
 func (svc *albumService) CreateAlbum(ctx context.Context, req dto.CreateAlbumRequest) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("vaalidation failed", errorsMap)
 	}
 
 	// Check existing artist
@@ -137,9 +133,9 @@ func (svc *albumService) CreateAlbum(ctx context.Context, req dto.CreateAlbumReq
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: req.ArtistId}
+		notFoundErr := errs.NewNotFoundError("Artist", "id", req.ArtistId)
 		utils.LogWarn(svc.log, ctx, "album_service", "CreateAlbum", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	// Check duplicate slug
@@ -150,16 +146,16 @@ func (svc *albumService) CreateAlbum(ctx context.Context, req dto.CreateAlbumReq
 		return err
 	}
 	if exist {
-		conflictErr := utils.ConflictError{Resource: "Album", Field: "Name", Value: req.Name}
+		conflictErr := errs.NewConflictError("Album", "name", req.Name)
 		utils.LogWarn(svc.log, ctx, "album_service", "CreateAlbum", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	input := models.CreateAlbumInput{
 		ArtistId: req.ArtistId,
 		Name:     req.Name,
 		Slug:     slug,
-		Image:    imgByte,
+		Image:    utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Store(ctx, input); err != nil {
@@ -172,12 +168,7 @@ func (svc *albumService) CreateAlbum(ctx context.Context, req dto.CreateAlbumReq
 
 func (svc *albumService) UpdateAlbum(ctx context.Context, req dto.CreateAlbumRequest, id int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("vaalidation failed", errorsMap)
 	}
 
 	album, err := svc.repo.FindAlbumById(ctx, id)
@@ -186,9 +177,9 @@ func (svc *albumService) UpdateAlbum(ctx context.Context, req dto.CreateAlbumReq
 		return err
 	}
 	if album == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Album", Id: id}
+		notFoundErr := errs.NewNotFoundError("Album", "id", id)
 		utils.LogWarn(svc.log, ctx, "album_service", "UpdateAlbum", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	// Check existing artist
@@ -198,9 +189,9 @@ func (svc *albumService) UpdateAlbum(ctx context.Context, req dto.CreateAlbumReq
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: req.ArtistId}
+		notFoundErr := errs.NewNotFoundError("Artist", "id", req.ArtistId)
 		utils.LogWarn(svc.log, ctx, "album_service", "UpdateAlbum", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	slug := utils.MakeSlug(req.Name)
@@ -211,9 +202,9 @@ func (svc *albumService) UpdateAlbum(ctx context.Context, req dto.CreateAlbumReq
 			return err
 		}
 		if exists {
-			conflictErr := utils.ConflictError{Resource: "Album", Field: "Name", Value: req.Name}
+			conflictErr := errs.NewConflictError("Album", "name", req.Name)
 			utils.LogWarn(svc.log, ctx, "album_service", "UpdateAlbum", conflictErr)
-			return fmt.Errorf("%w", conflictErr)
+			return conflictErr
 		}
 	}
 
@@ -221,7 +212,7 @@ func (svc *albumService) UpdateAlbum(ctx context.Context, req dto.CreateAlbumReq
 		ArtistId: req.ArtistId,
 		Name:     req.Name,
 		Slug:     slug,
-		Image:    imgByte,
+		Image:    utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Update(ctx, input, id); err != nil {
@@ -239,7 +230,7 @@ func (svc *albumService) DeleteAlbum(ctx context.Context, id int) (err error) {
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Album", Id: id}
+		notFoundErr := errs.NewNotFoundError("Album", "id", id)
 		utils.LogWarn(svc.log, ctx, "album_service", "DeleteAlbum", notFoundErr)
 		return fmt.Errorf("%w", notFoundErr)
 	}

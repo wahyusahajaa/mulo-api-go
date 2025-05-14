@@ -4,19 +4,19 @@ package docs
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": [[ marshal .Schemes ]],
+    "schemes": {{ marshal .Schemes }},
     "swagger": "2.0",
     "info": {
-        "description": "[[escape .Description]]",
-        "title": "[[.Title]]",
+        "description": "{{escape .Description}}",
+        "title": "{{.Title}}",
         "contact": {
             "name": "The Developer",
             "email": "wahyusahaja.official@gmail.com"
         },
-        "version": "[[.Version]]"
+        "version": "{{.Version}}"
     },
-    "host": "[[.Host]]",
-    "basePath": "[[.BasePath]]",
+    "host": "{{.Host}}",
+    "basePath": "{{.BasePath}}",
     "paths": {
         "/genres": {
             "get": {
@@ -881,8 +881,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "This documentation for access Mulo Music Streaming",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "[[",
-	RightDelim:       "]]",
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

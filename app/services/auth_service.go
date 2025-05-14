@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/resend"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
@@ -36,7 +36,7 @@ func NewAuthService(repo contracts.AuthRepository, jwtSvc jwt.JWTService, verifi
 func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (err error) {
 	// validation struct
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	// Check if email already exists
@@ -46,9 +46,9 @@ func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (
 		return err
 	}
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "User", Field: "email", Value: req.Email}
+		conflictErr := errs.NewConflictError("User", "email", req.Email)
 		utils.LogWarn(svc.log, ctx, "auth_service", "Register", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	// Check if username already exists
@@ -58,9 +58,9 @@ func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (
 		return err
 	}
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "User", Field: "username", Value: req.Username}
+		conflictErr := errs.NewConflictError("User", "username", req.Username)
 		utils.LogWarn(svc.log, ctx, "auth_service", "Register", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	// Generate verification code
@@ -93,7 +93,7 @@ func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (
 func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (token string, err error) {
 	// validation struct
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return "", fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
+		return "", errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	// Get existing user by email
@@ -103,16 +103,16 @@ func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (token 
 		return "", err
 	}
 	if user == nil {
-		notFoundErr := utils.NotFoundErrorWithCustomField{Resource: "User", Field: "email", Value: req.Email}
+		notFoundErr := errs.NewNotFoundError("User", "email", req.Email)
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
-		return "", fmt.Errorf("%w", notFoundErr)
+		return "", notFoundErr
 	}
 
 	// Check password
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
-		notFoundErr := utils.NotFoundErrorWithCustomMsg{Message: "Invalid email or password."}
+		notFoundErr := errs.NewNotFoundErrorWithMsg("Invalid email or password.")
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
-		return "", fmt.Errorf("%w", notFoundErr)
+		return "", notFoundErr
 	}
 
 	// Generate token
@@ -128,7 +128,7 @@ func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (token 
 func (svc *authService) VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest, userId int) (err error) {
 	// validation struct
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	// Check existing user verify by code
@@ -138,16 +138,16 @@ func (svc *authService) VerifyEmail(ctx context.Context, req dto.VerifyEmailRequ
 		return err
 	}
 	if userVerified == nil {
-		notFoundErr := utils.NotFoundErrorWithCustomField{Resource: "Verification", Field: "code", Value: req.Code}
+		notFoundErr := errs.NewNotFoundError("Verification", "code", req.Code)
 		utils.LogWarn(svc.log, ctx, "auth_service", "VerifyEmail", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	// Check expired code
 	if userVerified.ExpiredAt.Valid && userVerified.ExpiredAt.Time.Before(time.Now()) {
-		goneErr := utils.GoneError{Resource: "Verification Code", Field: "code", Value: req.Code}
+		goneErr := errs.NewGoneError("Verification Code", "code", req.Code)
 		utils.LogWarn(svc.log, ctx, "auth_service", "VerifyEmail", goneErr)
-		return fmt.Errorf("%w", goneErr)
+		return goneErr
 	}
 
 	// Update user

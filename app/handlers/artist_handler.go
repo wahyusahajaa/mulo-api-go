@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -28,12 +29,12 @@ func (h *ArtistHandler) GetArtists(c *fiber.Ctx) error {
 
 	artists, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
 	}
 
 	total, err := h.svc.GetCount(c.Context())
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -56,7 +57,7 @@ func (h *ArtistHandler) CreateArtist(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.CreateArtist(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "CreateArtist", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "CreateArtist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -69,7 +70,7 @@ func (h *ArtistHandler) GetArtist(c *fiber.Ctx) error {
 
 	artist, err := h.svc.GetArtistById(c.Context(), artistId)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "GetArtist", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -88,7 +89,7 @@ func (h *ArtistHandler) UpdateArtist(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdateArtist(c.Context(), req, id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "UpdateArtist", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "UpdateArtist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -100,7 +101,7 @@ func (h *ArtistHandler) DeleteArtist(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.svc.DeleteArtist(context.TODO(), id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "artist_handler", "DeleteArtist", err)
+		return errs.HandleHTTPError(c, h.log, "artist_handler", "DeleteArtist", err)
 	}
 
 	return c.JSON(fiber.Map{

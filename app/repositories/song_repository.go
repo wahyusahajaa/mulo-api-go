@@ -9,6 +9,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -130,7 +131,7 @@ func (repo *songRepository) FindSongById(ctx context.Context, id int) (song *mod
 		&song.Album.Artist.Image,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "song_repo", "GetSongById", utils.NotFoundError{Resource: "Song", Id: id})
+			utils.LogWarn(repo.log, ctx, "song_repo", "GetSongById", errs.NewNotFoundError("Song", "id", id))
 			return nil, nil
 		}
 

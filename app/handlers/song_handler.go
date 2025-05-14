@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -27,12 +28,12 @@ func (h *SongHandler) GetSongs(c *fiber.Ctx) error {
 
 	songs, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
 	}
 
 	total, err := h.svc.GetCount(c.Context())
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -50,7 +51,7 @@ func (h *SongHandler) GetSong(c *fiber.Ctx) error {
 
 	song, err := h.svc.GetSongById(c.Context(), id)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "GetSong", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSong", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -68,7 +69,7 @@ func (h *SongHandler) CreateSong(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.CreateSong(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "CreateSong", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "CreateSong", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -87,7 +88,7 @@ func (h *SongHandler) UpdateSong(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdateSong(c.Context(), req, id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "UpdateSong", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "UpdateSong", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -99,7 +100,7 @@ func (h *SongHandler) DeleteSong(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := h.svc.DeleteSong(c.Context(), id); err != nil {
-		return utils.HandleHTTPError(c, h.log, "song_handler", "DeleteSong", err)
+		return errs.HandleHTTPError(c, h.log, "song_handler", "DeleteSong", err)
 	}
 
 	return c.JSON(fiber.Map{

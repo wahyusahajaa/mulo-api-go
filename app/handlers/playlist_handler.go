@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -29,12 +30,12 @@ func (h *PlaylistHandler) GetPlaylists(c *fiber.Ctx) error {
 
 	playlists, err := h.svc.GetAll(c.Context(), role, userId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
 	}
 
 	total, err := h.svc.GetCount(c.Context(), role, userId)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -54,7 +55,7 @@ func (h *PlaylistHandler) GetPlaylist(c *fiber.Ctx) error {
 
 	playlist, err := h.svc.GetPlaylistById(c.Context(), role, userId, id)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylist", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -72,7 +73,7 @@ func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.CreatePlaylist(c.Context(), req); err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylist", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -93,7 +94,7 @@ func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 	}
 
 	if err := h.svc.UpdatePlaylist(c.Context(), req, userRole, userId, playlistId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "UpdatePlaylist", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "UpdatePlaylist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -107,7 +108,7 @@ func (h *PlaylistHandler) DeletePlaylist(c *fiber.Ctx) error {
 	userRole := utils.GetRole(c.Context())
 
 	if err := h.svc.DeletePlaylist(c.Context(), userRole, userId, playlistId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -123,7 +124,7 @@ func (h *PlaylistHandler) GetPlaylistSongs(c *fiber.Ctx) error {
 
 	songs, err := h.svc.GetPlaylistSongs(c.Context(), role, userId, playlistId, pageSize, offset)
 	if err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylistSongs", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylistSongs", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -138,7 +139,7 @@ func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := h.svc.CreatePlaylistSong(c.Context(), userRole, userId, playlistId, songId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylistSong", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylistSong", err)
 	}
 
 	return c.JSON(fiber.Map{
@@ -153,7 +154,7 @@ func (h *PlaylistHandler) DeletePlaylistSong(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := h.svc.DeletePlaylistSong(c.Context(), userRole, userId, playlistId, songId); err != nil {
-		return utils.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
+		return errs.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
 	}
 
 	return c.JSON(fiber.Map{

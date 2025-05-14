@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -67,11 +67,7 @@ func (svc *artistService) GetCount(ctx context.Context) (total int, err error) {
 
 func (svc *artistService) CreateArtist(ctx context.Context, req dto.CreateArtistRequest) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
-	}
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	slug := utils.MakeSlug(req.Name)
@@ -81,15 +77,15 @@ func (svc *artistService) CreateArtist(ctx context.Context, req dto.CreateArtist
 		return err
 	}
 	if exists {
-		conflictErr := utils.ConflictError{Resource: "Artist", Field: "name", Value: req.Name}
+		conflictErr := errs.NewConflictError("Artist", "name", req.Name)
 		utils.LogWarn(svc.log, ctx, "artist_service", "CreateArtist", conflictErr)
-		return fmt.Errorf("%w", conflictErr)
+		return conflictErr
 	}
 
 	input := models.CreateArtistInput{
 		Name:  req.Name,
 		Slug:  slug,
-		Image: imgByte,
+		Image: utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Store(ctx, input); err != nil {
@@ -107,9 +103,9 @@ func (svc *artistService) GetArtistById(ctx context.Context, artistId int) (arti
 		return
 	}
 	if result == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: artistId}
+		notFoundErr := errs.NewNotFoundError("Artist", "id", artistId)
 		utils.LogWarn(svc.log, ctx, "artist_service", "GetArtistById", notFoundErr)
-		return artist, fmt.Errorf("%w", notFoundErr)
+		return artist, notFoundErr
 	}
 
 	artist = dto.Artist{
@@ -124,7 +120,7 @@ func (svc *artistService) GetArtistById(ctx context.Context, artistId int) (arti
 
 func (svc *artistService) UpdateArtist(ctx context.Context, req dto.CreateArtistRequest, id int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: errorsMap})
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	artist, err := svc.repo.FindArtistById(ctx, id)
@@ -133,9 +129,9 @@ func (svc *artistService) UpdateArtist(ctx context.Context, req dto.CreateArtist
 		return err
 	}
 	if artist == nil {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: id}
+		notFoundErr := errs.NewNotFoundError("Artist", "id", id)
 		utils.LogWarn(svc.log, ctx, "artist_service", "UpdateArtist", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	slug := utils.MakeSlug(req.Name)
@@ -146,21 +142,16 @@ func (svc *artistService) UpdateArtist(ctx context.Context, req dto.CreateArtist
 			return err
 		}
 		if exists {
-			conflictErr := utils.ConflictError{Resource: "Artist", Field: "Name", Value: req.Name}
+			conflictErr := errs.NewConflictError("Artist", "name", req.Name)
 			utils.LogWarn(svc.log, ctx, "artist_service", "UpdateArtist", conflictErr)
-			return fmt.Errorf("%w", conflictErr)
+			return conflictErr
 		}
-	}
-
-	imgByte, err := utils.ParseImageToByte(req.Image)
-	if err != nil {
-		return fmt.Errorf("%w", utils.BadReqError{Errors: map[string]string{"image": "Invalid image object"}})
 	}
 
 	input := models.CreateArtistInput{
 		Name:  req.Name,
 		Slug:  slug,
-		Image: imgByte,
+		Image: utils.ParseImageToByte(req.Image),
 	}
 
 	if err := svc.repo.Update(ctx, input, id); err != nil {
@@ -178,9 +169,9 @@ func (svc *artistService) DeleteArtist(ctx context.Context, id int) (err error) 
 		return err
 	}
 	if !exists {
-		notFoundErr := utils.NotFoundError{Resource: "Artist", Id: id}
+		notFoundErr := errs.NewNotFoundError("Artist", "id", id)
 		utils.LogWarn(svc.log, ctx, "artist_service", "DeleteArtist", notFoundErr)
-		return fmt.Errorf("%w", notFoundErr)
+		return notFoundErr
 	}
 
 	if err := svc.repo.Delete(ctx, id); err != nil {

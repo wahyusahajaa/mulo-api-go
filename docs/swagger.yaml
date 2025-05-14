@@ -1,0 +1,229 @@
+definitions:
+  CreateUserInput:
+    properties:
+      full_name:
+        type: string
+      image:
+        $ref: '#/definitions/Image'
+    required:
+    - full_name
+    type: object
+  ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  Image:
+    properties:
+      blur_hash:
+        type: string
+      src:
+        type: string
+    type: object
+  InternalErrorResponse:
+    properties:
+      message:
+        example: Internal server error
+        type: string
+      request_id:
+        example: abcd-1234
+        type: string
+    type: object
+  Pagination:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  ResponseMessage:
+    properties:
+      message:
+        type: string
+    type: object
+  ResponseWithData-User:
+    properties:
+      data:
+        $ref: '#/definitions/User'
+    type: object
+  ResponseWithPagination-array_User-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/User'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
+    type: object
+  User:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      username:
+        type: string
+    type: object
+  ValidationErrorResponse:
+    properties:
+      errors:
+        description: optional
+        type: object
+      message:
+        example: Validation failed
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: wahyusahaja.official@gmail.com
+    name: The Developer
+  description: This documentation for access Mulo Music Streaming
+  title: Mulo Music Streaming API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      description: Returns pong
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health Check
+      tags:
+      - health
+  /users:
+    get:
+      description: Get paginated list of users
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_User-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Users
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the user with the specified ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Delete user
+      tags:
+      - users
+    get:
+      description: Get a user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-User'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get User by ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Updates the user with the specified ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User object that needs to be updated
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/CreateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Update user
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: 'Type: Bearer token'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

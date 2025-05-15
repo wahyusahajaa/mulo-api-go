@@ -25,11 +25,17 @@ func NewSongService(songRepo contracts.SongRepository, albumRepo contracts.Album
 	}
 }
 
-func (svc *songService) GetAll(ctx context.Context, pageSize int, offset int) (songs []dto.Song, err error) {
+func (svc *songService) GetAll(ctx context.Context, pageSize int, offset int) (songs []dto.Song, total int, err error) {
+	total, err = svc.songRepo.FindCount(ctx)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "song_service", "GetAll", err)
+		return nil, 0, err
+	}
+
 	results, err := svc.songRepo.FindAll(ctx, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "song_service", "GetAll", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	songs = make([]dto.Song, 0, len(results))
@@ -59,16 +65,7 @@ func (svc *songService) GetAll(ctx context.Context, pageSize int, offset int) (s
 		songs = append(songs, song)
 	}
 
-	return songs, nil
-}
-
-func (svc *songService) GetCount(ctx context.Context) (total int, err error) {
-	total, err = svc.songRepo.FindCount(ctx)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "song_service", "GetCount", err)
-		return
-	}
-	return
+	return songs, total, nil
 }
 
 func (svc *songService) GetSongById(ctx context.Context, id int) (song dto.Song, err error) {

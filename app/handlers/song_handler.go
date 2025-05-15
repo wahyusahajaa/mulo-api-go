@@ -23,22 +23,27 @@ func NewSongHandler(svc contracts.SongService, log *logrus.Logger) *SongHandler 
 	}
 }
 
+// @Summary      	List Songs
+// @Description  	Get paginated list of songs
+// @Tags         	songs
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Song, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/songs [get]
 func (h *SongHandler) GetSongs(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
 
-	songs, err := h.svc.GetAll(c.Context(), pageSize, offset)
+	songs, total, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
 		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
 	}
 
-	total, err := h.svc.GetCount(c.Context())
-	if err != nil {
-		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSongs", err)
-	}
-
-	return c.JSON(fiber.Map{
-		"data": songs,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Song, dto.Pagination]{
+		Data: songs,
+		Pagination: dto.Pagination{
 			Page:     page,
 			PageSize: pageSize,
 			Total:    total,
@@ -46,6 +51,16 @@ func (h *SongHandler) GetSongs(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary      	Get song by ID
+// @Description  	Get a song by their ID
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	id		path     	int	true  "Song ID"
+// @Success 		200		{object} 	dto.ResponseWithData[dto.Song]
+// @Failure 		404 	{object} 	dto.ErrorResponse "Song not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router       	/songs/{id} [get]
 func (h *SongHandler) GetSong(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
@@ -54,17 +69,28 @@ func (h *SongHandler) GetSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": song,
+	return c.JSON(dto.ResponseWithData[dto.Song]{
+		Data: song,
 	})
 }
 
+// @Summary 		Create song
+// @Description 	Create a new song.
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			song	 body		dto.CreateSongRequest true "Song object that needs to be created"
+// @Success 		201 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/songs [post]
 func (h *SongHandler) CreateSong(c *fiber.Ctx) error {
 	var req dto.CreateSongRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid body request.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -72,18 +98,31 @@ func (h *SongHandler) CreateSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "song_handler", "CreateSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": "Successfully created song",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully created song.",
 	})
 }
 
+// @Summary 		Update song
+// @Description 	Update the song with the specified ID
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Song ID"
+// @Param 			song	body		dto.CreateSongRequest true "Song object that needs to be updated"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404 	{object} 	dto.ErrorResponse "Song not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/songs/{id} [put]
 func (h *SongHandler) UpdateSong(c *fiber.Ctx) error {
 	var req dto.CreateSongRequest
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid body request.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -91,11 +130,22 @@ func (h *SongHandler) UpdateSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "song_handler", "UpdateSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully updated song",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully updated song.",
 	})
 }
 
+// @Summary 		Delete song
+// @Description 	Delete the song with the specified ID
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id path int true "Song ID"
+// @Success 		200		{object} 	dto.ResponseMessage
+// @Failure 		404 	{object} 	dto.ErrorResponse "Song not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/songs/{id} [delete]
 func (h *SongHandler) DeleteSong(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
@@ -103,7 +153,7 @@ func (h *SongHandler) DeleteSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "song_handler", "DeleteSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully deleted song",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted song.",
 	})
 }

@@ -664,6 +664,113 @@ func (s *SongServiceTestSuite) TestDeleteSong() {
 	}
 }
 
+func (s *SongServiceTestSuite) TestGetSongsByAlbumId() {
+	image1 := dto.Image{Src: "image1.png", BlurHash: "abc"}
+	image1Bytes := utils.ParseImageToByte(&image1)
+
+	testCases := []struct {
+		name            string
+		prepareMock     func()
+		expectedResults []dto.Song
+		expectedTotal   int
+		expectedErr     error
+	}{
+		{
+			name: "success",
+			prepareMock: func() {
+				// Setup mocks
+				s.songRepo.On("FindCountSongsByAlbumId", mock.Anything, 1).Return(1, nil)
+				s.songRepo.On("FindSongsByAlbumId", mock.Anything, 1, 10, 0).Return([]models.Song{
+					{
+						Id:       1,
+						AlbumId:  1,
+						Title:    "Aku pulang",
+						Audio:    "aku-pulang.mp3",
+						Duration: 352,
+						Image:    image1Bytes,
+						Album: models.AlbumWithArtist{
+							Album: models.Album{
+								Id:       1,
+								ArtistId: 1,
+								Name:     "Album naff",
+								Slug:     "album-naff",
+								Image:    image1Bytes,
+							},
+							Artist: models.Artist{
+								Id:    1,
+								Name:  "Naff",
+								Slug:  "naff",
+								Image: image1Bytes,
+							},
+						},
+					},
+				}, nil)
+			},
+			expectedResults: []dto.Song{
+				{
+					Id:       1,
+					Title:    "Aku pulang",
+					Audio:    "aku-pulang.mp3",
+					Duration: 352,
+					Image:    image1,
+					Album: dto.AlbumWithArtist{
+						Album: dto.Album{
+							Id:    1,
+							Name:  "Album naff",
+							Slug:  "album-naff",
+							Image: image1,
+						},
+						Artist: dto.Artist{
+							Id:    1,
+							Name:  "Naff",
+							Slug:  "naff",
+							Image: image1,
+						},
+					},
+				},
+			},
+			expectedTotal: 1,
+		},
+		{
+			name: "FindCountSongsByAlbumId_Error",
+			prepareMock: func() {
+				s.songRepo.On("FindCountSongsByAlbumId", mock.Anything, 1).Return(0, errors.New("database failure"))
+			},
+			expectedErr: errors.New("database failure"),
+		},
+		{
+			name: "FindSongsByAlbumId_Error",
+			prepareMock: func() {
+				s.songRepo.On("FindCountSongsByAlbumId", mock.Anything, 1).Return(1, nil)
+				s.songRepo.On("FindSongsByAlbumId", mock.Anything, 1, 10, 0).Return(nil, errors.New("database failed"))
+			},
+			expectedErr: errors.New("database failed"),
+		},
+	}
+
+	for _, tc := range testCases {
+		s.Run(tc.name, func() {
+			s.ResetMocks()
+			tc.prepareMock()
+
+			// Actual
+			results, total, err := s.Svc.GetSongsByAlbumId(s.T().Context(), 1, 10, 0)
+
+			// Assert
+			if tc.expectedErr == nil {
+				s.NoError(err)
+				s.Equal(tc.expectedTotal, total)
+				s.Equal(tc.expectedResults, results)
+			} else {
+				s.Error(err)
+				s.EqualError(err, tc.expectedErr.Error())
+			}
+
+			s.songRepo.AssertExpectations(s.T())
+		})
+	}
+}
+
 func TestSongServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(SongServiceTestSuite))
 }

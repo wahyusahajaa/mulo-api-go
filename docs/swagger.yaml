@@ -34,6 +34,26 @@ definitions:
     - image
     - name
     type: object
+  CreateSongRequest:
+    properties:
+      album_id:
+        type: integer
+      audio:
+        type: string
+      duration:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      title:
+        minLength: 1
+        type: string
+    required:
+    - album_id
+    - audio
+    - duration
+    - image
+    - title
+    type: object
   CreateUserInput:
     properties:
       full_name:
@@ -91,6 +111,11 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/Genre'
+    type: object
+  ResponseWithData-Song:
+    properties:
+      data:
+        $ref: '#/definitions/Song'
     type: object
   ResponseWithData-User:
     properties:
@@ -420,6 +445,166 @@ paths:
       summary: Health Check
       tags:
       - health
+  /songs:
+    get:
+      description: Get paginated list of songs
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Song-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Songs
+      tags:
+      - songs
+    post:
+      consumes:
+      - application/json
+      description: Create a new song.
+      parameters:
+      - description: Song object that needs to be created
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/CreateSongRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create song
+      tags:
+      - songs
+  /songs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the song with the specified ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete song
+      tags:
+      - songs
+    get:
+      description: Get a song by their ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-Song'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get song by ID
+      tags:
+      - songs
+    put:
+      consumes:
+      - application/json
+      description: Update the song with the specified ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Song object that needs to be updated
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/CreateSongRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Song not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update song
+      tags:
+      - songs
   /users:
     get:
       description: Get paginated list of users

@@ -26,11 +26,17 @@ func NewAlbumService(repo contracts.AlbumRepository, artistRepo contracts.Artist
 	}
 }
 
-func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (albums []dto.AlbumWithArtist, err error) {
+func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (albums []dto.AlbumWithArtist, total int, err error) {
+	total, err = svc.repo.FindCount(ctx)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "album_service", "GetCount", err)
+		return nil, 0, err
+	}
+
 	albumResults, err := svc.repo.FindAll(ctx, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "album_service", "GetAll", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	// Make unique artist ids
@@ -48,7 +54,7 @@ func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (
 	artists, err := svc.artistRepo.FindByArtistIds(ctx, inClause, args)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "album_service", "GetAll", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	//  Build artist lookup map
@@ -78,7 +84,7 @@ func (svc *albumService) GetAll(ctx context.Context, pageSize int, offset int) (
 		albums = append(albums, album)
 	}
 
-	return albums, nil
+	return albums, total, nil
 }
 
 func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.AlbumWithArtist, err error) {
@@ -111,19 +117,9 @@ func (svc *albumService) GetAlbumById(ctx context.Context, id int) (album dto.Al
 	return album, nil
 }
 
-func (svc *albumService) GetCount(ctx context.Context) (total int, err error) {
-	total, err = svc.repo.FindCount(ctx)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "album_service", "GetCount", err)
-		return
-	}
-
-	return
-}
-
 func (svc *albumService) CreateAlbum(ctx context.Context, req dto.CreateAlbumRequest) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return errs.NewBadRequestError("vaalidation failed", errorsMap)
+		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	// Check existing artist

@@ -24,22 +24,28 @@ func NewArtistHandler(svc contracts.ArtistService, log *logrus.Logger) *ArtistHa
 	}
 }
 
+// GetArtists		Get paginated list of artists
+// @Summary      	List of Artists
+// @Description  	Get paginated list of artists
+// @Tags         	artists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Artist, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/artists [get]
 func (h *ArtistHandler) GetArtists(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
 
-	artists, err := h.svc.GetAll(c.Context(), pageSize, offset)
+	artists, total, err := h.svc.GetAll(c.Context(), pageSize, offset)
 	if err != nil {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
 	}
 
-	total, err := h.svc.GetCount(c.Context())
-	if err != nil {
-		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtists", err)
-	}
-
-	return c.JSON(fiber.Map{
-		"data": artists,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Artist, dto.Pagination]{
+		Data: artists,
+		Pagination: dto.Pagination{
 			Total:    total,
 			Page:     page,
 			PageSize: pageSize,
@@ -47,12 +53,24 @@ func (h *ArtistHandler) GetArtists(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Create artist
+// @Description 	Create a new artist.
+// @Tags        	artists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			artist	 body		dto.CreateArtistRequest true "artist object that needs to be created"
+// @Success 		201 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict artist name"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/artists [post]
 func (h *ArtistHandler) CreateArtist(c *fiber.Ctx) error {
 	var req dto.CreateArtistRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid body request.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -60,11 +78,21 @@ func (h *ArtistHandler) CreateArtist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "CreateArtist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully created artist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully created artist.",
 	})
 }
 
+// @Summary      	Get Artist by ID
+// @Description  	Get a Artist by their ID
+// @Tags        	artists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	id		path     	int	true  "Artist ID"
+// @Success 		200		{object} 	dto.ResponseWithData[dto.Artist]
+// @Failure 		404 	{object} 	dto.ErrorResponse "Artist not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router       	/artists/{id} [get]
 func (h *ArtistHandler) GetArtist(c *fiber.Ctx) error {
 	artistId, _ := strconv.Atoi(c.Params("id"))
 
@@ -73,18 +101,32 @@ func (h *ArtistHandler) GetArtist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetArtist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": artist,
+	return c.JSON(dto.ResponseWithData[dto.Artist]{
+		Data: artist,
 	})
 }
 
+// @Summary 		Update artist
+// @Description 	Update the artist with the specified ID
+// @Tags        	artists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Artist ID"
+// @Param 			artist	body		dto.CreateArtistRequest true "artist object that needs to be updated"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404 	{object} 	dto.ErrorResponse "Not Found: artist not found"
+// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: artist name"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/artists/{id} [put]
 func (h *ArtistHandler) UpdateArtist(c *fiber.Ctx) error {
 	var req dto.CreateArtistRequest
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid body request.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -92,11 +134,22 @@ func (h *ArtistHandler) UpdateArtist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "UpdateArtist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully updated artist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully updated artist.",
 	})
 }
 
+// @Summary 		Delete artist
+// @Description 	Delete the artist with the specified ID
+// @Tags        	artists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id path int true "artist ID"
+// @Success 		200		{object} 	dto.ResponseMessage
+// @Failure 		404 	{object} 	dto.ErrorResponse "Not Found: artist not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/artists/{id} [delete]
 func (h *ArtistHandler) DeleteArtist(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
@@ -104,7 +157,7 @@ func (h *ArtistHandler) DeleteArtist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "DeleteArtist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully deleted artist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted artist.",
 	})
 }

@@ -68,3 +68,23 @@ func (m *MockSongRepository) Update(ctx context.Context, input models.CreateSong
 
 	return args.Error(0)
 }
+
+func (m *MockSongRepository) FindCountSongsByAlbumId(ctx context.Context, albumId int) (total int, err error) {
+	args := m.Called(ctx, albumId)
+
+	if args.Get(0) != nil {
+		total = args.Get(0).(int)
+	}
+
+	return total, args.Error(1)
+}
+
+func (m *MockSongRepository) FindSongsByAlbumId(ctx context.Context, albumId int, pageSize int, offset int) (songs []models.Song, err error) {
+	args := m.Called(ctx, albumId, pageSize, offset)
+
+	if args.Get(0) != nil {
+		songs = args.Get(0).([]models.Song)
+	}
+
+	return songs, args.Error(1)
+}

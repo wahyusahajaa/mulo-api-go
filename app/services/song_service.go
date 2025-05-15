@@ -198,3 +198,46 @@ func (svc *songService) DeleteSong(ctx context.Context, id int) (err error) {
 
 	return
 }
+
+func (svc *songService) GetSongsByAlbumId(ctx context.Context, albumId, pageSize, offset int) (songs []dto.Song, total int, err error) {
+	total, err = svc.songRepo.FindCountSongsByAlbumId(ctx, albumId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "song_service", "GetAll", err)
+		return nil, 0, err
+	}
+
+	results, err := svc.songRepo.FindSongsByAlbumId(ctx, albumId, pageSize, offset)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "song_service", "GetAll", err)
+		return nil, 0, err
+	}
+
+	songs = make([]dto.Song, 0, len(results))
+
+	for _, v := range results {
+		song := dto.Song{
+			Id:       v.Id,
+			Title:    v.Title,
+			Audio:    v.Audio,
+			Duration: v.Duration,
+			Image:    utils.ParseImageToJSON(v.Image),
+			Album: dto.AlbumWithArtist{
+				Album: dto.Album{
+					Id:    v.Album.Id,
+					Name:  v.Album.Name,
+					Slug:  v.Album.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Image),
+				},
+				Artist: dto.Artist{
+					Id:    v.Album.Artist.Id,
+					Name:  v.Album.Artist.Name,
+					Slug:  v.Album.Artist.Slug,
+					Image: utils.ParseImageToJSON(v.Album.Artist.Image),
+				},
+			},
+		}
+		songs = append(songs, song)
+	}
+
+	return songs, total, nil
+}

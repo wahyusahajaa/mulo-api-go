@@ -61,6 +61,8 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	v1Protected.Post("/albums", h.Album.CreateAlbum)
 	v1Protected.Put("/albums/:id", h.Album.UpdateAlbum)
 	v1Protected.Delete("/albums/:id", h.Album.DeleteAlbum)
+	// List of Songs by album
+	v1Protected.Get("/albums/:id/songs", h.Song.GetSongsByAlbumId)
 
 	// Songs Endpoint
 	v1Protected.Get("/songs", h.Song.GetSongs)

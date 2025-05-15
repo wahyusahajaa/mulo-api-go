@@ -157,3 +157,33 @@ func (h *SongHandler) DeleteSong(c *fiber.Ctx) error {
 		Message: "Successfully deleted song.",
 	})
 }
+
+// @Summary      	List of Songs by album
+// @Description  	Get paginated list of songs by album
+// @Tags         	albums
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	id			path     	int	true  "Album ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Song, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/albums/{id}/songs [get]
+func (h *SongHandler) GetSongsByAlbumId(c *fiber.Ctx) error {
+	albumId, _ := strconv.Atoi(c.Params("id"))
+	page, pageSize, offset := utils.GetPaginationParam(c)
+
+	songs, total, err := h.svc.GetSongsByAlbumId(c.Context(), albumId, pageSize, offset)
+	if err != nil {
+		return errs.HandleHTTPError(c, h.log, "song_handler", "GetSongsByAlbumId", err)
+	}
+
+	return c.JSON(dto.ResponseWithPagination[[]dto.Song, dto.Pagination]{
+		Data: songs,
+		Pagination: dto.Pagination{
+			Page:     page,
+			PageSize: pageSize,
+			Total:    total,
+		},
+	})
+}

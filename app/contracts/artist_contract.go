@@ -20,9 +20,8 @@ type ArtistRepository interface {
 }
 
 type ArtistService interface {
-	GetAll(ctx context.Context, pageSize, offset int) (artists []dto.Artist, err error)
+	GetAll(ctx context.Context, pageSize, offset int) (artists []dto.Artist, total int, err error)
 	GetArtistByIds(ctx context.Context, inClause string, artistIds []any) (artists []models.Artist, err error)
-	GetCount(ctx context.Context) (total int, err error)
 	CreateArtist(ctx context.Context, req dto.CreateArtistRequest) (err error)
 	GetArtistById(ctx context.Context, artistId int) (artist dto.Artist, err error)
 	UpdateArtist(ctx context.Context, req dto.CreateArtistRequest, id int) (err error)

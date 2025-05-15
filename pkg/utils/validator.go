@@ -50,6 +50,7 @@ func getErrorMessage(fe validator.FieldError) string {
 		"max":      fmt.Sprintf("Maximum value is %s", fe.Param()),
 		"email":    "Must be a valid email",
 		"len":      fmt.Sprintf("Length must be %s characters", fe.Param()),
+		"gt":       "Field must be Greater than 0",
 	}
 
 	if result, ok := customErrorMessage[fe.Tag()]; ok {

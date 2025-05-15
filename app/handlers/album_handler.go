@@ -161,6 +161,17 @@ func (h *AlbumHandler) DeleteAlbum(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary      	List of albums by artist
+// @Description  	Get list of albums by artist id
+// @Tags         	artists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param 			id 			path int true "Artist ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithData[[]dto.Album]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/artists/{id}/albums [get]
 func (h *AlbumHandler) GetAlbumsByArtistId(c *fiber.Ctx) error {
 	artistId, _ := strconv.Atoi(c.Params("id"))
 

@@ -1,5 +1,16 @@
 basePath: /v1
 definitions:
+  Album:
+    properties:
+      id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
   AlbumWithArtist:
     properties:
       artist:
@@ -23,6 +34,19 @@ definitions:
         type: string
       slug:
         type: string
+    type: object
+  CreateAlbumRequest:
+    properties:
+      artist_id:
+        type: integer
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+    required:
+    - artist_id
+    - image
+    - name
     type: object
   CreateGenreRequest:
     properties:
@@ -107,6 +131,11 @@ definitions:
       message:
         type: string
     type: object
+  ResponseWithData-Album:
+    properties:
+      data:
+        $ref: '#/definitions/Album'
+    type: object
   ResponseWithData-Genre:
     properties:
       data:
@@ -121,6 +150,15 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/User'
+    type: object
+  ResponseWithPagination-array_Album-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Album'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
     type: object
   ResponseWithPagination-array_Artist-Pagination:
     properties:
@@ -204,6 +242,213 @@ info:
   title: Mulo Music Streaming API
   version: "1.0"
 paths:
+  /albums:
+    get:
+      description: Get paginated list of albums
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Album-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Albums
+      tags:
+      - albums
+    post:
+      consumes:
+      - application/json
+      description: Create a new album.
+      parameters:
+      - description: Album object that needs to be created
+        in: body
+        name: album
+        required: true
+        schema:
+          $ref: '#/definitions/CreateAlbumRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: Conflict album name
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create album
+      tags:
+      - albums
+  /albums/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the album with the specified ID
+      parameters:
+      - description: album ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Album not found'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete album
+      tags:
+      - albums
+    get:
+      description: Get a Album by their ID
+      parameters:
+      - description: Album ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-Album'
+        "404":
+          description: Album not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Album by ID
+      tags:
+      - albums
+    put:
+      consumes:
+      - application/json
+      description: Update the album with the specified ID
+      parameters:
+      - description: Album ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: album object that needs to be updated
+        in: body
+        name: album
+        required: true
+        schema:
+          $ref: '#/definitions/CreateAlbumRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: 'Not Found: album or artist not found'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "409":
+          description: 'Conflict: album name'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update album
+      tags:
+      - albums
+  /albums/{id}/songs:
+    get:
+      description: Get paginated list of songs by album
+      parameters:
+      - description: Album ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Song-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of Songs by album
+      tags:
+      - albums
   /genres:
     get:
       description: Get paginated list of genres

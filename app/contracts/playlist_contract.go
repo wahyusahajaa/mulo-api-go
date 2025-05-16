@@ -22,9 +22,8 @@ type PlaylistRepository interface {
 }
 
 type PlaylistService interface {
-	GetAll(ctx context.Context, userRole string, userId, pageSize, offset int) (playlists []dto.Playlist, err error)
+	GetAll(ctx context.Context, userRole string, userId, pageSize, offset int) (playlists []dto.Playlist, total int, err error)
 	GetPlaylistById(ctx context.Context, userRole string, userId, id int) (playlist dto.Playlist, err error)
-	GetCount(ctx context.Context, userRole string, userId int) (total int, err error)
 	CreatePlaylist(ctx context.Context, req dto.CreatePlaylistRequest) (err error)
 	UpdatePlaylist(ctx context.Context, req dto.CreatePlaylistRequest, userRole string, userId, id int) (err error)
 	DeletePlaylist(ctx context.Context, userRole string, userId, id int) (err error)

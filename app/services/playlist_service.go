@@ -25,11 +25,17 @@ func NewPlaylistService(repo contracts.PlaylistRepository, songRepo contracts.So
 	}
 }
 
-func (svc *playlistService) GetAll(ctx context.Context, userRole string, userId, pageSize, offset int) (playlists []dto.Playlist, err error) {
+func (svc *playlistService) GetAll(ctx context.Context, userRole string, userId, pageSize, offset int) (playlists []dto.Playlist, total int, err error) {
+	total, err = svc.repo.FindCount(ctx, userRole, userId)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "playlist_service", "GetAll", err)
+		return nil, 0, err
+	}
+
 	results, err := svc.repo.FindAll(ctx, userRole, userId, pageSize, offset)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "playlist_service", "GetAll", err)
-		return nil, err
+		return nil, 0, err
 	}
 
 	playlists = make([]dto.Playlist, 0, len(results))
@@ -40,7 +46,7 @@ func (svc *playlistService) GetAll(ctx context.Context, userRole string, userId,
 		})
 	}
 
-	return playlists, nil
+	return playlists, total, nil
 }
 
 func (svc *playlistService) GetPlaylistById(ctx context.Context, userRole string, userId, id int) (playlist dto.Playlist, err error) {
@@ -59,16 +65,6 @@ func (svc *playlistService) GetPlaylistById(ctx context.Context, userRole string
 	playlist.Name = result.Name
 
 	return playlist, nil
-}
-
-func (svc *playlistService) GetCount(ctx context.Context, userRole string, userId int) (total int, err error) {
-	total, err = svc.repo.FindCount(ctx, userRole, userId)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "playlist_service", "GetCount", err)
-		return
-	}
-
-	return
 }
 
 func (svc *playlistService) CreatePlaylist(ctx context.Context, req dto.CreatePlaylistRequest) (err error) {

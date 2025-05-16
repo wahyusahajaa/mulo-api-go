@@ -28,19 +28,14 @@ func (h *PlaylistHandler) GetPlaylists(c *fiber.Ctx) error {
 	role := utils.GetRole(c.Context())
 	userId := utils.GetUserId(c.Context())
 
-	playlists, err := h.svc.GetAll(c.Context(), role, userId, pageSize, offset)
+	playlists, total, err := h.svc.GetAll(c.Context(), role, userId, pageSize, offset)
 	if err != nil {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
 	}
 
-	total, err := h.svc.GetCount(c.Context(), role, userId)
-	if err != nil {
-		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylists", err)
-	}
-
-	return c.JSON(fiber.Map{
-		"data": playlists,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Playlist, dto.Pagination]{
+		Data: playlists,
+		Pagination: dto.Pagination{
 			PageSize: pageSize,
 			Page:     page,
 			Total:    total,
@@ -58,8 +53,8 @@ func (h *PlaylistHandler) GetPlaylist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": playlist,
+	return c.JSON(dto.ResponseWithData[dto.Playlist]{
+		Data: playlist,
 	})
 }
 
@@ -67,8 +62,8 @@ func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 	var req dto.CreatePlaylistRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid body request.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -76,8 +71,8 @@ func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": "Successfully created playlists.",
+	return c.Status(fiber.StatusCreated).JSON(dto.ResponseMessage{
+		Message: "Successfully created playlists.",
 	})
 }
 
@@ -88,8 +83,8 @@ func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Invalid request body.",
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
 		})
 	}
 
@@ -97,8 +92,8 @@ func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "UpdatePlaylist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully updated playlist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully updated playlist.",
 	})
 }
 
@@ -111,8 +106,8 @@ func (h *PlaylistHandler) DeletePlaylist(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully deleted playlist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted playlist.",
 	})
 }
 
@@ -127,8 +122,8 @@ func (h *PlaylistHandler) GetPlaylistSongs(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "GetPlaylistSongs", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": songs,
+	return c.JSON(dto.ResponseWithData[[]dto.Song]{
+		Data: songs,
 	})
 }
 
@@ -142,8 +137,8 @@ func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "CreatePlaylistSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully added song to playlists",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully added song to playlists.",
 	})
 }
 
@@ -157,7 +152,7 @@ func (h *PlaylistHandler) DeletePlaylistSong(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "playlist_handler", "DeletePlaylist", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully deleted song from playlist",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted song from playlist.",
 	})
 }

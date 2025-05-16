@@ -190,7 +190,7 @@ func (svc *playlistService) CreatePlaylistSong(ctx context.Context, userRole str
 		return err
 	}
 	if !exists {
-		notFoundErr := errs.NewConflictError("Playlist", "id", playlistId)
+		notFoundErr := errs.NewNotFoundError("Playlist", "id", playlistId)
 		utils.LogWarn(svc.log, ctx, "playlist_service", "CreatePlaylistSong", notFoundErr)
 		return notFoundErr
 	}

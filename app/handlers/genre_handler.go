@@ -239,6 +239,20 @@ func (h *GenreHandler) DeleteArtistGenre(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Assign genre to song
+// @Description 	Assign genre to song
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Song ID"
+// @Param 			genreId path int true "Genre ID"
+// @Success 		201 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre or song does not exists."
+// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Genre already exists on song."
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/songs/{id}/genres/{genreId} [post]
 func (h *GenreHandler) CreateSongGenre(c *fiber.Ctx) error {
 	songId, _ := strconv.Atoi(c.Params("id"))
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
@@ -247,25 +261,48 @@ func (h *GenreHandler) CreateSongGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "CreateSongGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully added new song genre",
+	return c.Status(fiber.StatusCreated).JSON(dto.ResponseMessage{
+		Message: "Successfully assigned genre to song.",
 	})
 }
 
+// @Summary      	List of genres by song
+// @Description  	Get paginated list of artists by genre
+// @Tags         	songs
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param 			id 			path int true "Song ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithData[[]dto.Genre]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/songs/{id}/genres [get]
 func (h *GenreHandler) GetSongGenres(c *fiber.Ctx) error {
 	songId, _ := strconv.Atoi(c.Params("id"))
 	_, pageSize, offset := utils.GetPaginationParam(c)
 
-	artistGenres, err := h.svc.GetSongGenres(c.Context(), songId, pageSize, offset)
+	genres, err := h.svc.GetSongGenres(c.Context(), songId, pageSize, offset)
 	if err != nil {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "GetSongGenres", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"data": artistGenres,
+	return c.JSON(dto.ResponseWithData[[]dto.Genre]{
+		Data: genres,
 	})
 }
 
+// @Summary 		Delete genre from song
+// @Description 	Delete genre from song
+// @Tags        	songs
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Song ID"
+// @Param 			genreId path int true "Genre ID"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre on song does not exists."
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/songs/{id}/genres/{genreId} [delete]
 func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {
 	songId, _ := strconv.Atoi(c.Params("id"))
 	genreId, _ := strconv.Atoi(c.Params("genreId"))
@@ -274,8 +311,8 @@ func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "artist_handler", "DeleteSongGenre", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Successfully deleted song genre",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully deleted genre from song.",
 	})
 }
 

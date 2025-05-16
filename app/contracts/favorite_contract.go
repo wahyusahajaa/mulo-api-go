@@ -8,16 +8,20 @@ import (
 )
 
 type FavoriteRepository interface {
-	FindFavoriteSongsByUserId(ctx context.Context, userId, pageSize, offset int) (songs []models.Song, err error)
-	FindCountFavoriteSongsByUserId(ctx context.Context, userId int) (total int, err error)
-	FindExistsFavoriteSongBySongId(ctx context.Context, userId, songId int) (exists bool, err error)
-	StoreFavoriteSong(ctx context.Context, userId, songId int) (err error)
-	DeleteFavoriteSong(ctx context.Context, userId, songId int) (err error)
+	FindFavoriteSongsByUserID(ctx context.Context, userID, pageSize, offset int) (songs []models.Song, err error)
+	FindCountFavoriteSongsByUserID(ctx context.Context, userID int) (total int, err error)
+	FindExistsFavoriteSongBySongID(ctx context.Context, userID, songID int) (exists bool, err error)
+	StoreFavoriteSong(ctx context.Context, userID, songID int) (err error)
+	DeleteFavoriteSong(ctx context.Context, userID, songID int) (err error)
 }
 
 type FavoriteService interface {
-	GetAllFavoriteSongsByUserId(ctx context.Context, userId, pageSize, offset int) (songs []dto.Song, err error)
-	GetCountFavoriteSongsByUserId(ctx context.Context, userId int) (total int, err error)
-	CreateFavoriteSong(ctx context.Context, userId, songId int) (err error)
-	DeleteFavoriteSong(ctx context.Context, userId, songId int) (err error)
+	// Get list of favorite songs
+	GetFavoriteSongsByUserID(ctx context.Context, userID, pageSize, offset int) (songs []dto.Song, total int, err error)
+
+	// Add song to favorite
+	AddFavoriteSong(ctx context.Context, userID, songID int) (err error)
+
+	// Remove song from favorite
+	RemoveFavoriteSong(ctx context.Context, userID, songID int) (err error)
 }

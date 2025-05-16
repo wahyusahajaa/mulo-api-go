@@ -24,53 +24,17 @@ func NewFavoriteService(favRepo contracts.FavoriteRepository, songRepo contracts
 	}
 }
 
-func (svc *favoriteService) CreateFavoriteSong(ctx context.Context, userId int, songId int) (err error) {
-	exists, err := svc.songRepo.FindExistsSongById(ctx, songId)
+func (svc *favoriteService) GetFavoriteSongsByUserID(ctx context.Context, userID, pageSize, offset int) (songs []dto.Song, total int, err error) {
+	total, err = svc.favRepo.FindCountFavoriteSongsByUserID(ctx, userID)
 	if err != nil {
-		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
-		return err
-	}
-	if !exists {
-		notFoundErr := errs.NewNotFoundError("Song", "id", songId)
-		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", notFoundErr)
-		return notFoundErr
+		utils.LogError(svc.log, ctx, "favorite_service", "GetFavoriteSongsByUserID", err)
+		return nil, 0, err
 	}
 
-	exists, err = svc.favRepo.FindExistsFavoriteSongBySongId(ctx, userId, songId)
+	results, err := svc.favRepo.FindFavoriteSongsByUserID(ctx, userID, pageSize, offset)
 	if err != nil {
-		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
-		return err
-	}
-
-	if exists {
-		conflictErr := errs.NewConflictError("Favorite", "song_id", songId)
-		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", conflictErr)
-		return conflictErr
-	}
-
-	if err = svc.favRepo.StoreFavoriteSong(ctx, userId, songId); err != nil {
-		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
-		return err
-	}
-
-	return
-}
-
-func (svc *favoriteService) GetCountFavoriteSongsByUserId(ctx context.Context, userId int) (total int, err error) {
-	total, err = svc.favRepo.FindCountFavoriteSongsByUserId(ctx, userId)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "favorite_service", "GetCountFavoriteSongsByUserId", err)
-		return
-	}
-
-	return
-}
-
-func (svc *favoriteService) GetAllFavoriteSongsByUserId(ctx context.Context, userId, pageSize, offset int) (songs []dto.Song, err error) {
-	results, err := svc.favRepo.FindFavoriteSongsByUserId(ctx, userId, pageSize, offset)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "favorite_service", "GetAllFavoriteSongsByUserId", err)
-		return nil, err
+		utils.LogError(svc.log, ctx, "favorite_service", "GetFavoriteSongsByUserID", err)
+		return nil, 0, err
 	}
 
 	songs = make([]dto.Song, 0, len(results))
@@ -99,22 +63,54 @@ func (svc *favoriteService) GetAllFavoriteSongsByUserId(ctx context.Context, use
 		songs = append(songs, song)
 	}
 
-	return songs, nil
+	return songs, total, nil
 }
 
-func (svc *favoriteService) DeleteFavoriteSong(ctx context.Context, userId int, songId int) (err error) {
-	exists, err := svc.favRepo.FindExistsFavoriteSongBySongId(ctx, userId, songId)
+func (svc *favoriteService) AddFavoriteSong(ctx context.Context, userID int, songID int) (err error) {
+	exists, err := svc.songRepo.FindExistsSongById(ctx, songID)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
+		return err
+	}
+	if !exists {
+		notFoundErr := errs.NewNotFoundError("Song", "id", songID)
+		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", notFoundErr)
+		return notFoundErr
+	}
+
+	exists, err = svc.favRepo.FindExistsFavoriteSongBySongID(ctx, userID, songID)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
+		return err
+	}
+
+	if exists {
+		conflictErr := errs.NewConflictError("Favorite", "song_id", songID)
+		utils.LogWarn(svc.log, ctx, "favorite_service", "CreateFavorite", conflictErr)
+		return conflictErr
+	}
+
+	if err = svc.favRepo.StoreFavoriteSong(ctx, userID, songID); err != nil {
+		utils.LogError(svc.log, ctx, "favorite_service", "CreateFavorite", err)
+		return err
+	}
+
+	return
+}
+
+func (svc *favoriteService) RemoveFavoriteSong(ctx context.Context, userID int, songID int) (err error) {
+	exists, err := svc.favRepo.FindExistsFavoriteSongBySongID(ctx, userID, songID)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "favorite_service", "DeleteFavoriteSong", err)
 		return
 	}
 	if !exists {
-		notFoundErr := errs.NewNotFoundError("Song", "id", songId)
+		notFoundErr := errs.NewNotFoundError("Song", "id", songID)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "DeleteFavoriteSong", notFoundErr)
 		return notFoundErr
 	}
 
-	if err = svc.favRepo.DeleteFavoriteSong(ctx, userId, songId); err != nil {
+	if err = svc.favRepo.DeleteFavoriteSong(ctx, userID, songID); err != nil {
 		utils.LogError(svc.log, ctx, "favorite_repo", "DeleteFavoriteSong", err)
 		return
 	}

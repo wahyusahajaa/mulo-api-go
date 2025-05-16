@@ -23,7 +23,7 @@ func NewFavoriteRepository(db *database.DB, log *logrus.Logger) contracts.Favori
 	}
 }
 
-func (repo *favoriteRepository) FindFavoriteSongsByUserId(ctx context.Context, userId, pageSize, offset int) (songs []models.Song, err error) {
+func (repo *favoriteRepository) FindFavoriteSongsByUserID(ctx context.Context, userId, pageSize, offset int) (songs []models.Song, err error) {
 	query := `
 		SELECT 
 			s.id AS song_id,
@@ -89,7 +89,7 @@ func (repo *favoriteRepository) FindFavoriteSongsByUserId(ctx context.Context, u
 	return songs, nil
 }
 
-func (repo *favoriteRepository) FindCountFavoriteSongsByUserId(ctx context.Context, userId int) (total int, err error) {
+func (repo *favoriteRepository) FindCountFavoriteSongsByUserID(ctx context.Context, userId int) (total int, err error) {
 	query := `SELECT COUNT(*) FROM song_favorites WHERE user_id = $1`
 	if err = repo.db.QueryRowContext(ctx, query, userId).Scan(&total); err != nil {
 		utils.LogError(repo.log, ctx, "favorite_repo", "FindCountFavoriteSongsByUserId", err)
@@ -98,7 +98,7 @@ func (repo *favoriteRepository) FindCountFavoriteSongsByUserId(ctx context.Conte
 	return
 }
 
-func (repo *favoriteRepository) FindExistsFavoriteSongBySongId(ctx context.Context, userId int, songId int) (exists bool, err error) {
+func (repo *favoriteRepository) FindExistsFavoriteSongBySongID(ctx context.Context, userId int, songId int) (exists bool, err error) {
 	query := `SELECT EXISTS (SELECT 1 FROM song_favorites WHERE user_id = $1 AND song_id = $2)`
 	args := []any{userId, songId}
 

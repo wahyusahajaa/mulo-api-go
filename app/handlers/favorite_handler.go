@@ -23,23 +23,18 @@ func NewFavoriteHandler(svc contracts.FavoriteService, log *logrus.Logger) *Favo
 	}
 }
 
-func (h *FavoriteHandler) GetFavoriteSongsByUserId(c *fiber.Ctx) error {
+func (h *FavoriteHandler) GetFavoriteSongsByUserID(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
-	userId := utils.GetUserId(c.Context())
+	userID := utils.GetUserId(c.Context())
 
-	songs, err := h.svc.GetAllFavoriteSongsByUserId(c.Context(), userId, pageSize, offset)
+	songs, total, err := h.svc.GetFavoriteSongsByUserID(c.Context(), userID, pageSize, offset)
 	if err != nil {
-		return errs.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserID", err)
 	}
 
-	total, err := h.svc.GetCountFavoriteSongsByUserId(c.Context(), userId)
-	if err != nil {
-		return errs.HandleHTTPError(c, h.log, "favorite_handler", "GetFavoriteSongsByUserId", err)
-	}
-
-	return c.JSON(fiber.Map{
-		"data": songs,
-		"pagination": dto.Pagination{
+	return c.JSON(dto.ResponseWithPagination[[]dto.Song, dto.Pagination]{
+		Data: songs,
+		Pagination: dto.Pagination{
 			Page:     page,
 			PageSize: pageSize,
 			Total:    total,
@@ -47,28 +42,28 @@ func (h *FavoriteHandler) GetFavoriteSongsByUserId(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FavoriteHandler) CreateFavoriteSong(c *fiber.Ctx) error {
+func (h *FavoriteHandler) AddFavoriteSong(c *fiber.Ctx) error {
 	songId, _ := strconv.Atoi(c.Params("songId"))
 	userId := utils.GetUserId(c.Context())
 
-	if err := h.svc.CreateFavoriteSong(c.Context(), userId, songId); err != nil {
-		return errs.HandleHTTPError(c, h.log, "favorite_handler", "CreateFavoriteSong", err)
+	if err := h.svc.AddFavoriteSong(c.Context(), userId, songId); err != nil {
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "AddFavoriteSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Succesfully added song to favorite",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Succesfully added song to favorite.",
 	})
 }
 
-func (h *FavoriteHandler) DeleteFavoriteSong(c *fiber.Ctx) error {
+func (h *FavoriteHandler) RemoveFavoriteSong(c *fiber.Ctx) error {
 	songId, _ := strconv.Atoi(c.Params("songId"))
 	userId := utils.GetUserId(c.Context())
 
-	if err := h.svc.DeleteFavoriteSong(c.Context(), userId, songId); err != nil {
-		return errs.HandleHTTPError(c, h.log, "favorite_handler", "DeleteFavoriteSong", err)
+	if err := h.svc.RemoveFavoriteSong(c.Context(), userId, songId); err != nil {
+		return errs.HandleHTTPError(c, h.log, "favorite_handler", "RemoveFavoriteSong", err)
 	}
 
-	return c.JSON(fiber.Map{
-		"message": "Succesfully deleted song from favorite",
+	return c.JSON(dto.ResponseMessage{
+		Message: "Succesfully removed song from favorite.",
 	})
 }

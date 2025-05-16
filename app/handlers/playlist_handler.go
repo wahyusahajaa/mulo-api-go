@@ -23,6 +23,16 @@ func NewPlaylistHandler(svc contracts.PlaylistService, log *logrus.Logger) *Play
 	}
 }
 
+// @Summary      	List of playlists
+// @Description  	Get paginated list of playlists
+// @Tags         	playlists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithPagination[[]dto.Playlist, dto.Pagination]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/playlists [get]
 func (h *PlaylistHandler) GetPlaylists(c *fiber.Ctx) error {
 	page, pageSize, offset := utils.GetPaginationParam(c)
 	role := utils.GetRole(c.Context())
@@ -43,6 +53,16 @@ func (h *PlaylistHandler) GetPlaylists(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary      	Get playlist by ID
+// @Description  	Get a playlist by their ID
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param        	id		path     	int	true  "Playlist ID"
+// @Success 		200		{object} 	dto.ResponseWithData[dto.Playlist]
+// @Failure 		404 	{object} 	dto.ErrorResponse "Playlist not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router       	/playlists/{id} [get]
 func (h *PlaylistHandler) GetPlaylist(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 	role := utils.GetRole(c.Context())
@@ -58,6 +78,17 @@ func (h *PlaylistHandler) GetPlaylist(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Create Playlist
+// @Description 	Create a new playlist.
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			playlist	 body		dto.CreatePlaylistRequest true "Playlist object that needs to be created"
+// @Success 		201 		{object} 	dto.ResponseMessage
+// @Failure 		400			{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		500 		{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/playlists [post]
 func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 	var req dto.CreatePlaylistRequest
 
@@ -76,6 +107,19 @@ func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Update playlist
+// @Description 	Update the playlist with the specified ID
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Playlist ID"
+// @Param 			song	body		dto.CreatePlaylistRequest true "Song object that needs to be updated"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404 	{object} 	dto.ErrorResponse "Playlist not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/playlists/{id} [put]
 func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 	var req dto.CreatePlaylistRequest
 	playlistId, _ := strconv.Atoi(c.Params("id"))
@@ -97,6 +141,17 @@ func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Delete playlist
+// @Description 	Delete the playlist with the specified ID
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id path int true "Song ID"
+// @Success 		200		{object} 	dto.ResponseMessage
+// @Failure 		404 	{object} 	dto.ErrorResponse "Playlist not found"
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/playlists/{id} [delete]
 func (h *PlaylistHandler) DeletePlaylist(c *fiber.Ctx) error {
 	playlistId, _ := strconv.Atoi(c.Params("id"))
 	userId := utils.GetUserId(c.Context())
@@ -111,6 +166,17 @@ func (h *PlaylistHandler) DeletePlaylist(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary      	List of songs by playlist
+// @Description  	Get list of songs by playlist id.
+// @Tags         	playlists
+// @Security     	BearerAuth
+// @Produce      	json
+// @Param 			id 			path int true "Playlist ID"
+// @Param        	page     	query    	int  false  "Page number" default(1)
+// @Param        	pageSize 	query    	int  false  "Page size" default(10)
+// @Success 		200 		{object}	dto.ResponseWithData[[]dto.Song]
+// @Failure 		500			{object}	dto.InternalErrorResponse "Internal server error"
+// @Router      	/playlists/{id}/songs [get]
 func (h *PlaylistHandler) GetPlaylistSongs(c *fiber.Ctx) error {
 	_, pageSize, offset := utils.GetPaginationParam(c)
 	playlistId, _ := strconv.Atoi(c.Params("id"))
@@ -127,6 +193,20 @@ func (h *PlaylistHandler) GetPlaylistSongs(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Added song to playlist
+// @Description 	Added song to playlist
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Playlist ID"
+// @Param 			songId	path int true "Song ID"
+// @Success 		201 	{object} 	dto.ResponseMessage
+// @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
+// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Playlist or song does not exists."
+// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Song already exists on playlist."
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/playlists/{id}/songs/{songId} [post]
 func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
 	playlistId, _ := strconv.Atoi(c.Params("id"))
 	songId, _ := strconv.Atoi(c.Params("songId"))
@@ -142,6 +222,18 @@ func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
 	})
 }
 
+// @Summary 		Delete song from playlist
+// @Description 	Delete genre from playlist.
+// @Tags        	playlists
+// @Security     	BearerAuth
+// @Accept 			json
+// @Produce 		json
+// @Param 			id 		path int true "Playlist ID"
+// @Param 			songId 	path int true "Song ID"
+// @Success 		200 	{object} 	dto.ResponseMessage
+// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Song on playlist does not exists."
+// @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
+// @Router 			/playlists/{id}/songs/{songId} [delete]
 func (h *PlaylistHandler) DeletePlaylistSong(c *fiber.Ctx) error {
 	playlistId, _ := strconv.Atoi(c.Params("id"))
 	songId, _ := strconv.Atoi(c.Params("songId"))

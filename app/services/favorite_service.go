@@ -85,7 +85,7 @@ func (svc *favoriteService) AddFavoriteSong(ctx context.Context, userID int, son
 	}
 
 	if exists {
-		conflictErr := errs.NewConflictError("Favorite", "song_id", songID)
+		conflictErr := errs.NewConflictError("Song on favorite", "song_id", songID)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "AddFavoriteSong", conflictErr)
 		return conflictErr
 	}
@@ -105,7 +105,7 @@ func (svc *favoriteService) RemoveFavoriteSong(ctx context.Context, userID int, 
 		return
 	}
 	if !exists {
-		notFoundErr := errs.NewNotFoundError("Song", "id", songID)
+		notFoundErr := errs.NewNotFoundError("Song on favorite", "song_id", songID)
 		utils.LogWarn(svc.log, ctx, "favorite_service", "RemoveFavoriteSong", notFoundErr)
 		return notFoundErr
 	}

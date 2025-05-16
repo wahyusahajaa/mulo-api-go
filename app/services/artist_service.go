@@ -50,17 +50,6 @@ func (svc *artistService) GetAll(ctx context.Context, pageSize, offset int) (art
 	return artists, total, nil
 }
 
-func (svc *artistService) GetArtistByIds(ctx context.Context, inClause string, artistIds []any) (artists []models.Artist, err error) {
-	artists, err = svc.repo.FindByArtistIds(ctx, inClause, artistIds)
-
-	if err != nil {
-		svc.log.WithError(err).Error("error in artist service")
-		return
-	}
-
-	return
-}
-
 func (svc *artistService) CreateArtist(ctx context.Context, req dto.CreateArtistRequest) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
 		return errs.NewBadRequestError("validation failed", errorsMap)

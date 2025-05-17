@@ -94,6 +94,15 @@ func NewConflictError(resource, field string, value any, cause ...error) *Confli
 	}
 }
 
+func NewConflictErrorWithMsg(Message string) *NotFoundError {
+	return &NotFoundError{
+		BaseError: &BaseError{
+			Message: Message,
+			Code:    404,
+		},
+	}
+}
+
 // GoneError represents a 410 error for expired resources.
 type GoneError struct {
 	*BaseError
@@ -109,6 +118,26 @@ func NewGoneError(resource, field string, value any, cause ...error) *GoneError 
 		BaseError: &BaseError{
 			Message: fmt.Sprintf("%s with %s '%v' has expired.", resource, field, value),
 			Code:    410,
+			Cause:   underlying,
+		},
+	}
+}
+
+// Forbidden client error response status code indicates that the server understood the request but refused to process it
+type Fobidden struct {
+	*BaseError
+}
+
+func NewForbiddenError(message string, cause ...error) *Fobidden {
+	var underlying error
+	if len(cause) > 0 {
+		underlying = cause[0]
+	}
+
+	return &Fobidden{
+		BaseError: &BaseError{
+			Message: message,
+			Code:    403,
 			Cause:   underlying,
 		},
 	}

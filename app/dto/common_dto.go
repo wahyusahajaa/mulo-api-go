@@ -28,6 +28,13 @@ type ResponseWithData[T any] struct {
 	Data T `json:"data"`
 } // @name ResponseWithData
 
+// ResponseToken[T,X]
+// @Description Response with token
+type ResponseWithToken[T any, X any] struct {
+	Message T `json:"message"`
+	Token   T `json:"token"`
+} // @name ResponseWithData
+
 type ResponseError struct {
 	Message string `json:"message"`
 } //@name ResponseError

@@ -11,12 +11,12 @@ import (
 const maxRetries = 5
 
 type verificationService struct {
-	authRepo contracts.AuthRepository
+	userRepo contracts.UserRepository
 }
 
-func NewVerificationService(authRepo contracts.AuthRepository) VerificationService {
+func NewVerificationService(userRepo contracts.UserRepository) VerificationService {
 	return &verificationService{
-		authRepo: authRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -27,7 +27,7 @@ func (v *verificationService) GenerateVerificationCode(ctx context.Context) (cod
 			return "", err
 		}
 
-		exists, err := v.authRepo.FindUserVerifiedByCode(ctx, code)
+		exists, err := v.userRepo.FindUserVerifiedByCode(ctx, code)
 		if err != nil {
 			return "", err
 		}

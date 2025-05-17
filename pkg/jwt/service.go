@@ -19,14 +19,12 @@ func NewJWTService(cfg *config.Config) JWTService {
 	}
 }
 
-func (j *jwtService) GenerateJWTToken(id int, fullname string, username string, role string, isEmailVerified bool) (string, error) {
+func (j *jwtService) GenerateJWTToken(id int, username string, role string) (string, error) {
 	claims := jwtlib.MapClaims{
-		"id":                id,
-		"full_name":         fullname,
-		"username":          username,
-		"role":              role,
-		"is_email_verified": isEmailVerified,
-		"exp":               time.Now().Add(time.Hour * 24).Unix(),
+		"id":       id,
+		"username": username,
+		"role":     role,
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 		// "exp": time.Now().Add(time.Minute * 1).Unix(),
 	}
 
@@ -44,18 +42,18 @@ func (j *jwtService) ParseJWTToken(tokenString string) (jwtlib.MapClaims, error)
 	}, jwtlib.WithValidMethods([]string{"HS256"}))
 
 	if err != nil || !token.Valid {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token: "+err.Error())
+		return nil, fiber.NewError(fiber.StatusUnauthorized, err.Error())
 	}
 
 	claims, ok := token.Claims.(jwtlib.MapClaims)
 	if !ok {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid token claims")
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "Authentication token is not valid.")
 	}
 
 	// Manual cek expiration
 	exp, ok := claims["exp"].(float64)
 	if !ok || int64(exp) < time.Now().Unix() {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Token expired")
+		return nil, fiber.NewError(fiber.StatusUnauthorized, "Token is expired or no longer valid.")
 	}
 
 	return claims, nil
@@ -63,12 +61,12 @@ func (j *jwtService) ParseJWTToken(tokenString string) (jwtlib.MapClaims, error)
 
 func (j *jwtService) ExtractTokenFromHeader(authHeader string) (string, error) {
 	if authHeader == "" {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "Missing Authorization header")
+		return "", fiber.NewError(fiber.StatusUnauthorized, "No Authorization header provided. Please include a valid token.")
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "Invalid Authorization header format")
+		return "", fiber.NewError(fiber.StatusUnauthorized, "Authorization header must be in the format: Bearer <token>.")
 	}
 
 	return parts[1], nil

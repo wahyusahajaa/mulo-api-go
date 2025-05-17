@@ -27,14 +27,8 @@ func (m *AuthMiddleware) AuthRequired() fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": err.Error()})
 		}
 
-		if !claims["is_email_verified"].(bool) && c.Path() != "/v1/auth/verify-email" {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"message": "Email not verified yet.",
-			})
-		}
-
-		// Store claims to Locals
-		for _, key := range []string{"id", "full_name", "username", "role", "is_email_verified"} {
+		// Store claims to Locals/Context
+		for _, key := range []string{"id", "username", "role"} {
 			if value, ok := claims[key]; ok {
 				c.Locals(key, value)
 			}

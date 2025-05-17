@@ -5,7 +5,7 @@ import (
 )
 
 type JWTService interface {
-	GenerateJWTToken(id int, fullname string, username string, role string, isVerifiedAt bool) (string, error)
+	GenerateJWTToken(id int, username string, role string) (string, error)
 	ParseJWTToken(tokenString string) (jwtlib.MapClaims, error)
 	ExtractTokenFromHeader(authHeader string) (string, error)
 }

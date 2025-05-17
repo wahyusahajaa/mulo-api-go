@@ -56,14 +56,14 @@ func (svc *userService) GetCount(ctx context.Context) (total int, err error) {
 	return
 }
 
-func (svc *userService) GetUserById(ctx context.Context, userId int) (user dto.User, err error) {
-	result, err := svc.repo.FindUserById(ctx, userId)
+func (svc *userService) GetUserById(ctx context.Context, userID int) (user dto.User, err error) {
+	result, err := svc.repo.FindUserByUserID(ctx, userID)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "GetUserById", err)
 		return user, err
 	}
 	if result == nil {
-		notFoundErr := errs.NewNotFoundError("User", "id", userId)
+		notFoundErr := errs.NewNotFoundError("User", "id", userID)
 		utils.LogWarn(svc.log, ctx, "user_service", "GetUserById", notFoundErr)
 		return user, notFoundErr
 	}
@@ -79,18 +79,18 @@ func (svc *userService) GetUserById(ctx context.Context, userId int) (user dto.U
 	return user, nil
 }
 
-func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, userId int) (err error) {
+func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, userID int) (err error) {
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
 		return errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
-	exists, err := svc.repo.FindExistsUserById(ctx, userId)
+	exists, err := svc.repo.FindExistsUserByUserID(ctx, userID)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "Update", err)
 		return err
 	}
 	if !exists {
-		notFoundErr := errs.NewNotFoundError("User", "id", userId)
+		notFoundErr := errs.NewNotFoundError("User", "id", userID)
 		utils.LogWarn(svc.log, ctx, "user_service", "Update", notFoundErr)
 		return notFoundErr
 	}
@@ -100,7 +100,7 @@ func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, use
 		Image:    utils.ParseImageToByte(req.Image),
 	}
 
-	if err := svc.repo.Update(ctx, input, userId); err != nil {
+	if err := svc.repo.Update(ctx, input, userID); err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "Update", err)
 		return err
 	}
@@ -108,19 +108,19 @@ func (svc *userService) Update(ctx context.Context, req dto.CreateUserInput, use
 	return nil
 }
 
-func (svc *userService) Delete(ctx context.Context, userId int) (err error) {
-	exists, err := svc.repo.FindExistsUserById(ctx, userId)
+func (svc *userService) Delete(ctx context.Context, userID int) (err error) {
+	exists, err := svc.repo.FindExistsUserByUserID(ctx, userID)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "Delete", err)
 		return err
 	}
 	if !exists {
-		notFoundErr := errs.NewNotFoundError("User", "id", userId)
+		notFoundErr := errs.NewNotFoundError("User", "id", userID)
 		utils.LogWarn(svc.log, ctx, "user_service", "Delete", notFoundErr)
 		return notFoundErr
 	}
 
-	if err := svc.repo.Delete(ctx, userId); err != nil {
+	if err := svc.repo.Delete(ctx, userID); err != nil {
 		utils.LogError(svc.log, ctx, "user_service", "Delete", err)
 		return err
 	}

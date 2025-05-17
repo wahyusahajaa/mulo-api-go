@@ -26,15 +26,15 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	authGroup := v1.Group("auth")
 
 	// Public routes
-	authGroup.Post("/login", h.Auth.Login)
 	authGroup.Post("/register", h.Auth.Register)
+	authGroup.Post("/login", h.Auth.Login)
+	authGroup.Post("/verify", h.Auth.Verify)
+	authGroup.Post("/resend-verification", h.Auth.ResendVerification)
+	authGroup.Get("/verification-status", h.Auth.VerificationStatus)
+	// authGroup.Post("/refresh-token", h.Auth.Login)
 
-	authGroupProtected := authGroup.Use(h.Middleware.AuthRequired())
 	v1Protected := v1.Use(h.Middleware.AuthRequired())
-
-	authGroupProtected.Put("/verify-email", h.Auth.VerifyEmail)
-	authGroupProtected.Post("/resend-code", h.Auth.ResendCodeEmailVerification)
-	authGroupProtected.Get("/profile", h.Auth.Profile)
+	v1Protected.Get("auth/me", h.Auth.AuthMe)
 
 	// Users endpoint
 	v1Protected.Get("/users", h.User.GetUsers)

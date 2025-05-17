@@ -12,6 +12,11 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type VerifyEmailRequest struct {
-	Code string `json:"code" validate:"required"`
+type VerifyRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required"`
+}
+
+type ResendVerificationRequest struct {
+	Email string `json:"email" validate:"required,email"`
 }

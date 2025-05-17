@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
@@ -19,13 +20,14 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// db.SetMaxOpenConns(10)
-	// db.SetMaxIdleConns(10)
-	// db.SetConnMaxLifetime(5 * time.Minute)
-
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	// Pooling setting
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(20)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
 	return &DB{db}, nil
 }

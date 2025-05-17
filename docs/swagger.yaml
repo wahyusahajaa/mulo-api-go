@@ -48,6 +48,16 @@ definitions:
     - image
     - name
     type: object
+  CreateArtistRequest:
+    properties:
+      image:
+        $ref: '#/definitions/Image'
+      name:
+        type: string
+    required:
+    - image
+    - name
+    type: object
   CreateGenreRequest:
     properties:
       image:
@@ -56,6 +66,13 @@ definitions:
         type: string
     required:
     - image
+    - name
+    type: object
+  CreatePlaylistRequest:
+    properties:
+      name:
+        type: string
+    required:
     - name
     type: object
   CreateSongRequest:
@@ -126,6 +143,13 @@ definitions:
       total:
         type: integer
     type: object
+  Playlist:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   ResponseMessage:
     properties:
       message:
@@ -136,10 +160,20 @@ definitions:
       data:
         $ref: '#/definitions/Album'
     type: object
+  ResponseWithData-Artist:
+    properties:
+      data:
+        $ref: '#/definitions/Artist'
+    type: object
   ResponseWithData-Genre:
     properties:
       data:
         $ref: '#/definitions/Genre'
+    type: object
+  ResponseWithData-Playlist:
+    properties:
+      data:
+        $ref: '#/definitions/Playlist'
     type: object
   ResponseWithData-Song:
     properties:
@@ -150,6 +184,31 @@ definitions:
     properties:
       data:
         $ref: '#/definitions/User'
+    type: object
+  ResponseWithData-any:
+    properties:
+      data: {}
+    type: object
+  ResponseWithData-array_Album:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Album'
+        type: array
+    type: object
+  ResponseWithData-array_Genre:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Genre'
+        type: array
+    type: object
+  ResponseWithData-array_Song:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Song'
+        type: array
     type: object
   ResponseWithPagination-array_Album-Pagination:
     properties:
@@ -174,6 +233,15 @@ definitions:
       data:
         items:
           $ref: '#/definitions/Genre'
+        type: array
+      pagination:
+        $ref: '#/definitions/Pagination'
+    type: object
+  ResponseWithPagination-array_Playlist-Pagination:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/Playlist'
         type: array
       pagination:
         $ref: '#/definitions/Pagination'
@@ -232,6 +300,50 @@ definitions:
       message:
         example: Validation failed
         type: string
+    type: object
+  github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - username
+    type: object
+  github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    required:
+    - code
+    - email
     type: object
 host: localhost:3000
 info:
@@ -449,6 +561,620 @@ paths:
       summary: List of Songs by album
       tags:
       - albums
+  /artists:
+    get:
+      description: Get paginated list of artists
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Artist-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of Artists
+      tags:
+      - artists
+    post:
+      consumes:
+      - application/json
+      description: Create a new artist.
+      parameters:
+      - description: artist object that needs to be created
+        in: body
+        name: artist
+        required: true
+        schema:
+          $ref: '#/definitions/CreateArtistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: Conflict artist name
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create artist
+      tags:
+      - artists
+  /artists/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the artist with the specified ID
+      parameters:
+      - description: artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: artist not found'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete artist
+      tags:
+      - artists
+    get:
+      description: Get a Artist by their ID
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-Artist'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Artist by ID
+      tags:
+      - artists
+    put:
+      consumes:
+      - application/json
+      description: Update the artist with the specified ID
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: artist object that needs to be updated
+        in: body
+        name: artist
+        required: true
+        schema:
+          $ref: '#/definitions/CreateArtistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: 'Not Found: artist not found'
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "409":
+          description: 'Conflict: artist name'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update artist
+      tags:
+      - artists
+  /artists/{id}/albums:
+    get:
+      description: Get list of albums by artist id
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-array_Album'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of albums by artist
+      tags:
+      - artists
+  /artists/{id}/genres:
+    get:
+      description: Get list of genres by artist id
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-array_Genre'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of genres by artist
+      tags:
+      - artists
+  /artists/{id}/genres/{genreId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete genre from artist
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre ID
+        in: path
+        name: genreId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Genre on artist does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete genre from artist
+      tags:
+      - artists
+    post:
+      consumes:
+      - application/json
+      description: Assign genre to artist
+      parameters:
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre ID
+        in: path
+        name: genreId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: 'Not Found: Genre or artist does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: 'Conflict: Genre already exists on artist.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign genre to artist
+      tags:
+      - artists
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token if successful.
+      parameters:
+      - description: login object that needs to be created
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "403":
+          description: Account not activated
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Returns profile information of the currently authenticated user
+        based on the provided JWT token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-User'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Get current authenticated user info
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account and sends a verification email.
+      parameters:
+      - description: register object that needs to be created
+        in: body
+        name: register
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: Username or email already exists.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Resends the verification code to the user's email if it hasn't
+        been verified yet.
+      parameters:
+      - description: resend object that needs to be created
+        in: body
+        name: resend
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Email does not exists.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: Email is already verified.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Resend email verification
+      tags:
+      - auth
+  /auth/verification-status:
+    get:
+      consumes:
+      - application/json
+      description: Checks whether the user's email has been verified.
+      parameters:
+      - description: User email
+        in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-any'
+        "404":
+          description: Email does not exists.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Check email verification status
+      tags:
+      - auth
+  /auth/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the user's email address using a verification code.
+      parameters:
+      - description: verify object that needs to be created
+        in: body
+        name: verify
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Email or Code does not exists.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: Email is already verified.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "410":
+          description: Code has expired.
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      summary: Verify user email
+      tags:
+      - auth
+  /favorites/songs:
+    get:
+      description: Get paginated list of favorite songs
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Song-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of favorite songs
+      tags:
+      - favorites
+  /favorites/songs/{songId}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove song from favorite
+      parameters:
+      - description: Song ID
+        in: path
+        name: songId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Song on favorites does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove song from favorite
+      tags:
+      - favorites
+    post:
+      consumes:
+      - application/json
+      description: Add song to favorite
+      parameters:
+      - description: Song ID
+        in: path
+        name: songId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Song does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: 'Conflict: Song already exists on favorites.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add song to favorite
+      tags:
+      - favorites
   /genres:
     get:
       description: Get paginated list of genres
@@ -690,6 +1416,280 @@ paths:
       summary: Health Check
       tags:
       - health
+  /playlists:
+    get:
+      description: Get paginated list of playlists
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithPagination-array_Playlist-Pagination'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of playlists
+      tags:
+      - playlists
+    post:
+      consumes:
+      - application/json
+      description: Create a new playlist.
+      parameters:
+      - description: Playlist object that needs to be created
+        in: body
+        name: playlist
+        required: true
+        schema:
+          $ref: '#/definitions/CreatePlaylistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Playlist
+      tags:
+      - playlists
+  /playlists/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the playlist with the specified ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: Playlist not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete playlist
+      tags:
+      - playlists
+    get:
+      description: Get a playlist by their ID
+      parameters:
+      - description: Playlist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-Playlist'
+        "404":
+          description: Playlist not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get playlist by ID
+      tags:
+      - playlists
+    put:
+      consumes:
+      - application/json
+      description: Update the playlist with the specified ID
+      parameters:
+      - description: Playlist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Song object that needs to be updated
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/CreatePlaylistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: Playlist not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update playlist
+      tags:
+      - playlists
+  /playlists/{id}/songs:
+    get:
+      description: Get list of songs by playlist id.
+      parameters:
+      - description: Playlist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-array_Song'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of songs by playlist
+      tags:
+      - playlists
+  /playlists/{id}/songs/{songId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete genre from playlist.
+      parameters:
+      - description: Playlist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Song ID
+        in: path
+        name: songId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Song on playlist does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete song from playlist
+      tags:
+      - playlists
+    post:
+      consumes:
+      - application/json
+      description: Added song to playlist
+      parameters:
+      - description: Playlist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Song ID
+        in: path
+        name: songId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: 'Not Found: Playlist or song does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: 'Conflict: Song already exists on playlist.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Added song to playlist
+      tags:
+      - playlists
   /songs:
     get:
       description: Get paginated list of songs
@@ -848,6 +1848,120 @@ paths:
       security:
       - BearerAuth: []
       summary: Update song
+      tags:
+      - songs
+  /songs/{id}/genres:
+    get:
+      description: Get paginated list of artists by genre
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseWithData-array_Genre'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List of genres by song
+      tags:
+      - songs
+  /songs/{id}/genres/{genreId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete genre from song
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre ID
+        in: path
+        name: genreId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "404":
+          description: 'Not Found: Genre on song does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete genre from song
+      tags:
+      - songs
+    post:
+      consumes:
+      - application/json
+      description: Assign genre to song
+      parameters:
+      - description: Song ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Genre ID
+        in: path
+        name: genreId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "404":
+          description: 'Not Found: Genre or song does not exists.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "409":
+          description: 'Conflict: Genre already exists on song.'
+          schema:
+            $ref: '#/definitions/ValidationErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/InternalErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign genre to song
       tags:
       - songs
   /users:

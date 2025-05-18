@@ -25,9 +25,12 @@ func main() {
 		log.Fatalf("failed to Initialized app: %v", err)
 	}
 
-	// Start the server
-	log.Printf("Server starting on port %s", app.Config.AppPort)
-	if err := app.App.Listen(":" + app.Config.AppPort); err != nil {
+	// if err := app.App.Listen(":" + app.Config.AppPort); err != nil {
+	// 	log.Fatalf("failed to start server: %v", err)
+	// }
+
+	// for https
+	if err := app.App.ListenTLS(":"+app.Config.AppPort, "./cert/cert.pem", "./cert/key.pem"); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

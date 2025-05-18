@@ -1,59 +1,123 @@
 package jwt
 
 import (
+	"errors"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
+	"github.com/wahyusahajaa/mulo-api-go/app/dto"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 )
 
 type jwtService struct {
-	secret string
+	JwtSecret           []byte
+	RefreshSecret       []byte
+	AccessTokenExpires  time.Duration
+	RefreshTokenExpires time.Duration
 }
 
 func NewJWTService(cfg *config.Config) JWTService {
 	return &jwtService{
-		secret: cfg.JwtSecret,
+		JwtSecret:           []byte(cfg.JwtSecret),
+		RefreshSecret:       []byte(cfg.RefreshSecret),
+		AccessTokenExpires:  1 * time.Minute,
+		RefreshTokenExpires: 7 * 24 * time.Hour,
 	}
 }
 
-func (j *jwtService) GenerateJWTToken(id int, username string, role string) (string, error) {
-	claims := jwtlib.MapClaims{
-		"id":       id,
-		"username": username,
-		"role":     role,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-		// "exp": time.Now().Add(time.Minute * 1).Unix(),
+func (j *jwtService) GenerateTokens(id int, username string, role string) (accessToken, refreshToken string, err error) {
+	// Generate Access Token
+	accessClaims := dto.JWTCustomClaims{
+		ID:        id,
+		Username:  username,
+		UserRole:  role,
+		TokenType: "access",
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(j.AccessTokenExpires)),
+			IssuedAt:  jwtlib.NewNumericDate(time.Now()),
+			ID:        strconv.Itoa(id),
+		},
+	}
+	accessJwt := jwtlib.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessToken, err = accessJwt.SignedString(j.JwtSecret)
+	if err != nil {
+		return "", "", err
 	}
 
-	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, claims)
+	// Generate Refresh Token
+	refreshClaims := dto.JWTCustomClaims{
+		ID:        id,
+		Username:  username,
+		UserRole:  role,
+		TokenType: "refresh",
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(j.RefreshTokenExpires)),
+			IssuedAt:  jwtlib.NewNumericDate(time.Now()),
+			ID:        strconv.Itoa(id),
+		},
+	}
+	refreshJwt := jwtlib.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshToken, err = refreshJwt.SignedString(j.RefreshSecret)
+	if err != nil {
+		return "", "", err
+	}
 
-	return token.SignedString([]byte(j.secret))
+	return accessToken, refreshToken, nil
 }
 
-func (j *jwtService) ParseJWTToken(tokenString string) (jwtlib.MapClaims, error) {
-	token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (any, error) {
-		if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
-			return nil, fiber.NewError(fiber.StatusUnauthorized, "Unexpected signing method")
+func (j *jwtService) ParseToken(tokenString, tokenType string) (claims *dto.JWTCustomClaims, err error) {
+	token, err := jwt.ParseWithClaims(tokenString, &dto.JWTCustomClaims{}, func(token *jwtlib.Token) (interface{}, error) {
+		if tokenType == "access" {
+			return j.JwtSecret, nil
+		} else {
+			return j.RefreshSecret, nil
 		}
-		return []byte(j.secret), nil
 	}, jwtlib.WithValidMethods([]string{"HS256"}))
-
-	if err != nil || !token.Valid {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	if err != nil {
+		if errors.Is(err, jwtlib.ErrTokenExpired) {
+			return nil, errs.NewForbiddenError("Token is expired or no longer valid.")
+		}
+		if errors.Is(err, jwtlib.ErrSignatureInvalid) {
+			return nil, errs.NewForbiddenError("Token signature is invalid.")
+		}
+		return nil, err
 	}
 
-	claims, ok := token.Claims.(jwtlib.MapClaims)
-	if !ok {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Authentication token is not valid.")
+	claims, ok := token.Claims.(*dto.JWTCustomClaims)
+	if !ok || !token.Valid {
+		return nil, errs.NewForbiddenError("Authentication token is not valid.")
 	}
 
-	// Manual cek expiration
-	exp, ok := claims["exp"].(float64)
-	if !ok || int64(exp) < time.Now().Unix() {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Token is expired or no longer valid.")
+	return claims, nil
+}
+
+func (j *jwtService) ParseAccessToken(tokenString string) (claims *dto.JWTCustomClaims, err error) {
+	claims, err = j.ParseToken(tokenString, "access")
+	if err != nil {
+		return nil, err
+	}
+
+	// If not access token
+	if claims.TokenType != "access" {
+		return nil, errs.NewForbiddenError("Invalid token type.")
+	}
+
+	return claims, nil
+}
+
+func (j *jwtService) ParseRefreshToken(tokenString string) (claims *dto.JWTCustomClaims, err error) {
+	claims, err = j.ParseToken(tokenString, "refresh")
+	if err != nil {
+		return nil, err
+	}
+
+	// If not refresh token
+	if claims.TokenType != "refresh" {
+		return nil, errs.NewForbiddenError("Invalid token type.")
 	}
 
 	return claims, nil
@@ -61,12 +125,12 @@ func (j *jwtService) ParseJWTToken(tokenString string) (jwtlib.MapClaims, error)
 
 func (j *jwtService) ExtractTokenFromHeader(authHeader string) (string, error) {
 	if authHeader == "" {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "No Authorization header provided. Please include a valid token.")
+		return "", errs.NewForbiddenError("No Authorization header provided. Please include a valid token.")
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", fiber.NewError(fiber.StatusUnauthorized, "Authorization header must be in the format: Bearer <token>.")
+		return "", errs.NewForbiddenError("Authorization header must be in the format: Bearer <token>.")
 	}
 
 	return parts[1], nil

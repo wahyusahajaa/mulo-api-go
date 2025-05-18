@@ -31,8 +31,8 @@ type ResponseWithData[T any] struct {
 // ResponseToken[T,X]
 // @Description Response with token
 type ResponseWithToken[T any, X any] struct {
-	Message T `json:"message"`
-	Token   T `json:"token"`
+	Message      T `json:"message"`
+	AccessToken  X `json:"access_token"`
 } // @name ResponseWithData
 
 type ResponseError struct {

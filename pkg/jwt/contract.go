@@ -1,11 +1,13 @@
 package jwt
 
 import (
-	jwtlib "github.com/golang-jwt/jwt/v5"
+	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 )
 
 type JWTService interface {
-	GenerateJWTToken(id int, username string, role string) (string, error)
-	ParseJWTToken(tokenString string) (jwtlib.MapClaims, error)
+	GenerateTokens(id int, username string, role string) (accessToken, refreshToken string, err error)
+	ParseToken(token, tokenType string) (claims *dto.JWTCustomClaims, err error)
+	ParseAccessToken(tokenString string) (claims *dto.JWTCustomClaims, err error)
+	ParseRefreshToken(tokenString string) (claims *dto.JWTCustomClaims, err error)
 	ExtractTokenFromHeader(authHeader string) (string, error)
 }

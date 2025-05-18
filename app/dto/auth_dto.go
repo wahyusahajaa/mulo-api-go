@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/golang-jwt/jwt/v5"
+
 type RegisterRequest struct {
 	Fullname string `json:"full_name" validate:"required"`
 	Username string `json:"username" validate:"required"`
@@ -19,4 +21,12 @@ type VerifyRequest struct {
 
 type ResendVerificationRequest struct {
 	Email string `json:"email" validate:"required,email"`
+}
+
+type JWTCustomClaims struct {
+	ID        int    `json:"id"`
+	Username  string `json:"username"`
+	UserRole  string `json:"role"`
+	TokenType string `json:"token_type"`
+	jwt.RegisteredClaims
 }

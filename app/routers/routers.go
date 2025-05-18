@@ -31,7 +31,8 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	authGroup.Post("/verify", h.Auth.Verify)
 	authGroup.Post("/resend-verification", h.Auth.ResendVerification)
 	authGroup.Get("/verification-status", h.Auth.VerificationStatus)
-	// authGroup.Post("/refresh-token", h.Auth.Login)
+	authGroup.Post("/refresh", h.Auth.Refresh)
+	authGroup.Post("/logout", h.Auth.Logout)
 
 	v1Protected := v1.Use(h.Middleware.AuthRequired())
 	v1Protected.Get("auth/me", h.Auth.AuthMe)

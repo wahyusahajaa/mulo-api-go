@@ -142,3 +142,22 @@ func NewForbiddenError(message string, cause ...error) *Fobidden {
 		},
 	}
 }
+
+type Unauthorized struct {
+	*BaseError
+}
+
+func NewUnauthorizedError(message string, cause ...error) *Unauthorized {
+	var underlying error
+	if len(cause) > 0 {
+		underlying = cause[0]
+	}
+
+	return &Unauthorized{
+		BaseError: &BaseError{
+			Message: message,
+			Code:    401,
+			Cause:   underlying,
+		},
+	}
+}

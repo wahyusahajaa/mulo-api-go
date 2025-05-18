@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/mail"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
@@ -75,14 +76,25 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := h.svc.Login(c.Context(), req)
+	accessToken, refreshToken, err := h.svc.Login(c.Context(), req)
 	if err != nil {
 		return errs.HandleHTTPError(c, h.log, "auth_handler", "Login", err)
 	}
 
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  expiresAt,
+		HTTPOnly: true,
+		Secure:   false, // set to true if using HTTPS
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
 	return c.JSON(dto.ResponseWithToken[string, string]{
-		Message: "Successfully logged in.",
-		Token:   token,
+		Message:     "Successfully logged in.",
+		AccessToken: accessToken,
 	})
 }
 
@@ -201,5 +213,81 @@ func (h *AuthHandler) AuthMe(c *fiber.Ctx) error {
 
 	return c.JSON(dto.ResponseWithData[dto.User]{
 		Data: user,
+	})
+}
+
+// @Summary      Refresh access token
+// @Description  Get a new access token using a valid refresh token from cookies
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  dto.ResponseWithToken[string, string]  	"New access token"
+// @Failure      401  {object}  dto.ResponseError      		 			"Unauthorized"
+// @Failure      500  {object}  dto.ResponseError       				"Internal Server Error"
+// @Router       /auth/refresh [post]
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.ResponseError{
+			Message: "Missing refresh token.",
+		})
+	}
+
+	newAccessToken, newRefreshToken, err := h.svc.Refresh(c.Context(), refreshToken)
+	if err != nil {
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "Refresh", err)
+	}
+
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    newRefreshToken,
+		Expires:  expiresAt,
+		HTTPOnly: true,
+		Secure:   false, // set to true if using HTTPS
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	return c.JSON(dto.ResponseWithToken[string, string]{
+		Message:     "Refresh token successfully.",
+		AccessToken: newAccessToken,
+	})
+}
+
+// @Summary      Logout user
+// @Description  Remove refresh token from cookies and revoke session
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  dto.ResponseMessage	"Logout successful"
+// @Failure      401  {object}  dto.ResponseError	"Unauthorized"
+// @Failure      500  {object}  dto.ResponseError	"Internal Server Error"
+// @Router       /auth/logout [post]
+func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.ResponseError{
+			Message: "Missing refresh token.",
+		})
+	}
+
+	if err := h.svc.Logout(c.Context(), refreshToken); err != nil {
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "Logout", err)
+	}
+
+	// Hapus cookie refresh token dari browser
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+	})
+
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully logged out.",
 	})
 }

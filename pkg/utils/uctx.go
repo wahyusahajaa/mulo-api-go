@@ -16,8 +16,8 @@ func GetRequestId(ctx context.Context) string {
 // Get user_id from context
 func GetUserId(ctx context.Context) (id int) {
 	v := ctx.Value("id")
-	if id, ok := v.(float64); ok {
-		return int(id)
+	if id, ok := v.(int); ok {
+		return id
 	}
 	return
 }

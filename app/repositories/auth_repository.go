@@ -3,12 +3,15 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/database"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
@@ -80,5 +83,60 @@ func (repo *authRepository) UpdateUserVerifiedAt(ctx context.Context, userId int
 		return
 	}
 
+	return
+}
+
+func (repo *authRepository) IsRefreshTokenValid(ctx context.Context, userID int, token string) (valid bool, err error) {
+	var revoked bool
+	var expiredAt time.Time
+	query := `SELECT revoked, expires_at FROM refresh_tokens WHERE user_id = $1 AND token = $2`
+
+	if err = repo.db.QueryRowContext(ctx, query, userID, token).Scan(&revoked, &expiredAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			nfErr := errs.NewNotFoundErrorWithMsg(fmt.Sprintf(`refresh_tokens with user_id: %d and token: %s does not exists.`, userID, token))
+			utils.LogWarn(repo.log, ctx, "auth_repo", "FindExistsRefreshToken", nfErr)
+			return false, nil
+		}
+
+		utils.LogWarn(repo.log, ctx, "auth_repo", "FindExistsRefreshToken", err)
+		return false, err
+	}
+
+	// If has revoked or refresh token has expired set valid to false
+	if revoked || expiredAt.Before(time.Now()) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (repo *authRepository) StoreRefreshToken(ctx context.Context, userID int, token string, expiredAt time.Time) (err error) {
+	query := ` INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`
+
+	if _, err = repo.db.ExecContext(ctx, query, userID, token, expiredAt); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "FindExistsRefreshToken", err)
+		return
+	}
+
+	return
+}
+
+func (repo *authRepository) UpdateRefreshToken(ctx context.Context, userID int, token string) (err error) {
+	query := `UPDATE refresh_tokens SET revoked = TRUE, revoked_at = NOW() WHERE user_id = $1 AND token = $2 AND revoked = FALSE`
+
+	if _, err = repo.db.ExecContext(ctx, query, userID, token); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "UpdateRefreshToken", err)
+		return
+	}
+
+	return
+}
+
+func (repo *authRepository) DeleteRefreshToken(ctx context.Context, token string) (err error) {
+	query := `DELETE FROM refresh_tokens WHERE token = $1`
+	if _, err = repo.db.ExecContext(ctx, query, token); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "DeleteRefreshToken", err)
+		return
+	}
 	return
 }

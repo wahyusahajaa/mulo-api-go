@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	AppPort   string
-	AppEnv    string
-	JwtSecret string
-	DbURL     string
-	ResendKey string
+	AppPort       string
+	AppEnv        string
+	JwtSecret     string
+	RefreshSecret string
+	DbURL         string
+	ResendKey     string
 }
 
 func NewConfig() *Config {
@@ -24,11 +25,12 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		AppPort:   getEnv("APP_PORT", "3000"),
-		AppEnv:    getEnv("APP_ENV", "development"),
-		JwtSecret: getEnv("JWT_SECRET", ""),
-		DbURL:     getEnv("DB_URL", ""),
-		ResendKey: getEnv("RESEND_KEY", ""),
+		AppPort:       getEnv("APP_PORT", "3000"),
+		AppEnv:        getEnv("APP_ENV", "development"),
+		JwtSecret:     getEnv("JWT_SECRET", ""),
+		RefreshSecret: getEnv("REFRESH_SECRET", ""),
+		DbURL:         getEnv("DB_URL", ""),
+		ResendKey:     getEnv("RESEND_KEY", ""),
 	}
 }
 

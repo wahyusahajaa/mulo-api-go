@@ -99,42 +99,48 @@ func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (
 	return
 }
 
-func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (token string, err error) {
+func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (accessToken, refreshToken string, err error) {
 	// validation struct
 	if errorsMap, err := utils.RequestValidate(&req); err != nil {
-		return "", errs.NewBadRequestError("validation failed", errorsMap)
+		return "", "", errs.NewBadRequestError("validation failed", errorsMap)
 	}
 
 	// Get existing user by email
 	user, err := svc.userRepo.FindUserByEmail(ctx, req.Email)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "Login", err)
-		return "", err
+		return "", "", err
 	}
 	if user == nil {
 		notFoundErr := errs.NewNotFoundError("User", "email", req.Email)
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
-		return "", notFoundErr
+		return "", "", notFoundErr
 	}
 
 	// Check password
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
 		notFoundErr := errs.NewNotFoundErrorWithMsg("Password mismatch. Try again.")
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
-		return "", notFoundErr
+		return "", "", notFoundErr
 	}
 
 	if !user.EmailVerifiedAt.Valid {
 		forbiddenErr := errs.NewForbiddenError("Access denied. Please verify your email to continue.")
 		utils.LogWarn(svc.log, ctx, "auth_service", "login", forbiddenErr)
-		return "", forbiddenErr
+		return "", "", forbiddenErr
 	}
 
-	// Generate token
-	token, err = svc.jwtSvc.GenerateJWTToken(user.Id, user.Username, user.Role)
+	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(user.Id, user.Username, user.Role)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "Login", err)
-		return "", err
+		return "", "", err
+	}
+
+	// Store Refresh Token
+	refreshTokenExpires := time.Now().Add(7 * 24 * time.Hour)
+	if err := svc.authRepo.StoreRefreshToken(ctx, user.Id, refreshToken, refreshTokenExpires); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "Login", err)
+		return "", "", err
 	}
 
 	return
@@ -254,7 +260,12 @@ func (svc *authService) AuthMe(ctx context.Context, userID int) (user dto.User, 
 	result, err := svc.userRepo.FindUserByUserID(ctx, userID)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "Profile", err)
-		return
+		return dto.User{}, err
+	}
+	if result == nil {
+		nfErr := errs.NewNotFoundError("User", "id", userID)
+		utils.LogWarn(svc.log, ctx, "auth_service", "AuthMe", nfErr)
+		return dto.User{}, nfErr
 	}
 
 	user.Id = result.Id
@@ -262,6 +273,57 @@ func (svc *authService) AuthMe(ctx context.Context, userID int) (user dto.User, 
 	user.Email = result.Email
 	user.Username = result.Username
 	user.Image = utils.ParseImageToJSON(result.Image)
+
+	return
+}
+
+func (svc *authService) Refresh(ctx context.Context, token string) (accessToken string, refreshToken string, err error) {
+	claims, err := svc.jwtSvc.ParseRefreshToken(token)
+	if err != nil {
+		utils.LogWarn(svc.log, ctx, "auth_service", "Refresh", err)
+		return "", "", err
+	}
+
+	// Check if refresh token is valid or not revoked
+	valid, err := svc.authRepo.IsRefreshTokenValid(ctx, claims.ID, token)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "Refresh", err)
+		return "", "", err
+	}
+	if !valid {
+		unauthErr := errs.NewUnauthorizedError("Invalid refresh token or revoked.")
+		utils.LogWarn(svc.log, ctx, "auth_service", "refresh", unauthErr)
+		return "", "", unauthErr
+	}
+
+	// Update revoke status to TRUE or is revoked
+	if err = svc.authRepo.UpdateRefreshToken(ctx, claims.ID, token); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "Refresh", err)
+		return "", "", err
+	}
+
+	// Generate access and refresh token
+	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(claims.ID, claims.Username, claims.UserRole)
+	if err != nil {
+		utils.LogWarn(svc.log, ctx, "auth_service", "Refresh", err)
+		return "", "", err
+	}
+
+	// Store refresh token for next request refresh token while acces token has expired
+	refreshTokenExpires := time.Now().Add(7 * 24 * time.Hour)
+	if err := svc.authRepo.StoreRefreshToken(ctx, claims.ID, refreshToken, refreshTokenExpires); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "Refresh", err)
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (svc *authService) Logout(ctx context.Context, token string) (err error) {
+	if err = svc.authRepo.DeleteRefreshToken(ctx, token); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "Logout", err)
+		return
+	}
 
 	return
 }

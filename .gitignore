@@ -1,2 +1,4 @@
 .env
 logs/
+cert/
+.DS_Store

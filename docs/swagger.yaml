@@ -150,6 +150,11 @@ definitions:
       name:
         type: string
     type: object
+  ResponseError:
+    properties:
+      message:
+        type: string
+    type: object
   ResponseMessage:
     properties:
       message:
@@ -209,6 +214,13 @@ definitions:
         items:
           $ref: '#/definitions/Song'
         type: array
+    type: object
+  ResponseWithData-string-string:
+    properties:
+      access_token:
+        type: string
+      message:
+        type: string
     type: object
   ResponseWithPagination-array_Album-Pagination:
     properties:
@@ -916,6 +928,29 @@ paths:
       summary: Login user
       tags:
       - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Remove refresh token from cookies and revoke session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            $ref: '#/definitions/ResponseMessage'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ResponseError'
+      summary: Logout user
+      tags:
+      - auth
   /auth/me:
     get:
       consumes:
@@ -934,6 +969,29 @@ paths:
           schema:
             $ref: '#/definitions/InternalErrorResponse'
       summary: Get current authenticated user info
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Get a new access token using a valid refresh token from cookies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New access token
+          schema:
+            $ref: '#/definitions/ResponseWithData-string-string'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ResponseError'
+      summary: Refresh access token
       tags:
       - auth
   /auth/register:

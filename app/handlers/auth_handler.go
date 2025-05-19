@@ -87,7 +87,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Expires:  expiresAt,
 		HTTPOnly: true,
-		Secure:   false, // set to true if using HTTPS
+		Secure:   true, // set to true if using HTTPS
 		SameSite: "Lax",
 		Path:     "/",
 	})
@@ -244,7 +244,7 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		Value:    newRefreshToken,
 		Expires:  expiresAt,
 		HTTPOnly: true,
-		Secure:   false, // set to true if using HTTPS
+		Secure:   true, // set to true if using HTTPS
 		SameSite: "Lax",
 		Path:     "/",
 	})
@@ -326,7 +326,7 @@ func (h *AuthHandler) OAuthGithubCallback(c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Expires:  expiresAt,
 		HTTPOnly: true,
-		Secure:   false, // set to true if using HTTPS
+		Secure:   true, // set to true if using HTTPS
 		SameSite: "Lax",
 		Path:     "/",
 	})

@@ -33,7 +33,7 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	authGroup.Get("/verification-status", h.Auth.VerificationStatus)
 	authGroup.Post("/refresh", h.Auth.Refresh)
 	authGroup.Post("/logout", h.Auth.Logout)
-	authGroup.Post("/github/callback", h.Auth.GithubCallback)
+	authGroup.Post("/oauth/github/callback", h.Auth.OAuthGithubCallback)
 
 	v1Protected := v1.Use(h.Middleware.AuthRequired())
 	v1Protected.Get("auth/me", h.Auth.AuthMe)

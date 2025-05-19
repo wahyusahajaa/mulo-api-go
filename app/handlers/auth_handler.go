@@ -292,7 +292,21 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) GithubCallback(c *fiber.Ctx) error {
+// GithubCallback handles GitHub OAuth callback.
+// @Summary		OAuth GitHub Callback
+// @Description	Handles the redirect from GitHub after OAuth login/signup and returns a JWT token if successful.
+// @Tags		auth
+// @Accept		json
+// @Produce 	json
+// @Param		oauth		body		dto.GithubReq true "Authorization code received from GitHub redirect."
+// @Success 	200			{object} 	dto.ResponseWithToken[string, string] "Authenticated successfully with GitHub"
+// @Failure		400			{object}	dto.ResponseError "Invalid request or missing code"
+// @Failure		401			{object}	dto.ResponseError "Unauthorized: Bad credentials"
+// @Failure		404			{object}	dto.ResponseError "Not Found: Github user does not exists"
+// @Failure		408			{object}	dto.ResponseError "Time Out: Fetching GitHub email timed out"
+// @Failure		500			{object}	dto.ResponseError "Internal server error"
+// @Router		/auth/oauth/github/callback [POST]
+func (h *AuthHandler) OAuthGithubCallback(c *fiber.Ctx) error {
 	var req dto.GithubReq
 
 	if err := c.BodyParser(&req); err != nil {

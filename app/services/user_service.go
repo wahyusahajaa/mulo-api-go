@@ -35,7 +35,7 @@ func (svc *userService) GetAll(ctx context.Context, pageSize, offset int) (users
 		user := dto.User{
 			Id:       result.Id,
 			Fullname: result.Fullname,
-			Username: result.Username,
+			Username: result.Username.String,
 			Email:    result.Email,
 			Image:    utils.ParseImageToJSON(result.Image),
 		}
@@ -71,7 +71,7 @@ func (svc *userService) GetUserById(ctx context.Context, userID int) (user dto.U
 	user = dto.User{
 		Id:       result.Id,
 		Fullname: result.Fullname,
-		Username: result.Username,
+		Username: result.Username.String,
 		Email:    result.Email,
 		Image:    utils.ParseImageToJSON(result.Image),
 	}

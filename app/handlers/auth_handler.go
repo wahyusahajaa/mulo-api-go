@@ -291,3 +291,34 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		Message: "Successfully logged out.",
 	})
 }
+
+func (h *AuthHandler) GithubCallback(c *fiber.Ctx) error {
+	var req dto.GithubReq
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+			Message: "Invalid body request.",
+		})
+	}
+
+	accessToken, refreshToken, err := h.svc.OAuthGithubCallback(c.Context(), req)
+	if err != nil {
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "GithubCallback", err)
+	}
+
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Expires:  expiresAt,
+		HTTPOnly: true,
+		Secure:   false, // set to true if using HTTPS
+		SameSite: "Lax",
+		Path:     "/",
+	})
+
+	return c.JSON(dto.ResponseWithToken[string, string]{
+		Message:     "Successfully registered with github.",
+		AccessToken: accessToken,
+	})
+}

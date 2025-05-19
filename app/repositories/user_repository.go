@@ -73,7 +73,7 @@ func (repo *userRepository) FindUserVerifiedByCode(ctx context.Context, code str
 	query := `SELECT EXISTS (SELECT 1 FROM user_verified WHERE code = $1)`
 
 	if err := repo.db.QueryRowContext(ctx, query, code).Scan(&exists); err != nil {
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserVerifiedByCode", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserVerifiedByCode", err)
 		return false, err
 	}
 
@@ -84,7 +84,7 @@ func (repo *userRepository) FindUserExistsByEmail(ctx context.Context, email str
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`
 
 	if err = repo.db.QueryRowContext(ctx, query, email).Scan(&exists); err != nil {
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserExistsByEmail", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserExistsByEmail", err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (repo *userRepository) FindUserExistsByUsername(ctx context.Context, userna
 	query := `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`
 
 	if err = repo.db.QueryRowContext(ctx, query, username).Scan(&exists); err != nil {
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserExistsByUsername", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserExistsByUsername", err)
 		return
 	}
 
@@ -117,11 +117,11 @@ func (repo *userRepository) FindUserByEmail(ctx context.Context, email string) (
 		&user.EmailVerifiedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserByEmail", errs.NewNotFoundError("User", "email", email))
+			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserByEmail", errs.NewNotFoundError("User", "email", email))
 			return nil, nil
 		}
 
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserByEmail", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserByEmail", err)
 		return nil, err
 	}
 
@@ -143,11 +143,11 @@ func (repo *userRepository) FindUserByUserID(ctx context.Context, userID int) (u
 		&user.EmailVerifiedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserByUserID", errs.NewNotFoundError("User", "id", userID))
+			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserByUserID", errs.NewNotFoundError("User", "id", userID))
 			return nil, nil
 		}
 
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserByUserID", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserByUserID", err)
 		return nil, err
 	}
 
@@ -160,11 +160,11 @@ func (repo *userRepository) FindUserVerifiedByUserIDAndCode(ctx context.Context,
 	userVerified = &models.UserVerified{}
 	if err = repo.db.QueryRowContext(ctx, query, userId, code).Scan(&userVerified.Code, &userVerified.ExpiredAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.LogWarn(repo.log, ctx, "auth_repo", "FindUserVerifiedByUserIdAndCode", errs.NewNotFoundError("UserVerified", "code", code))
+			utils.LogWarn(repo.log, ctx, "user_repo", "FindUserVerifiedByUserIdAndCode", errs.NewNotFoundError("UserVerified", "code", code))
 			return nil, nil
 		}
 
-		utils.LogError(repo.log, ctx, "auth_repo", "FindUserVerifiedByUserIdAndCode", err)
+		utils.LogError(repo.log, ctx, "user_repo", "FindUserVerifiedByUserIdAndCode", err)
 		return nil, err
 	}
 

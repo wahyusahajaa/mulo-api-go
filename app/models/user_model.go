@@ -8,13 +8,12 @@ type User struct {
 	Id              int
 	Fullname        string
 	Email           string
-	Username        string
-	Password        string
+	Username        sql.NullString
+	Password        sql.NullString
 	Role            string
 	Image           []byte
 	EmailVerifiedAt sql.NullTime
 }
-
 type CreateUserInput struct {
 	Fullname string
 	Image    []byte

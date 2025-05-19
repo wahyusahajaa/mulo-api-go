@@ -17,6 +17,10 @@ type AuthRepository interface {
 	StoreRefreshToken(ctx context.Context, userID int, token string, expiredAt time.Time) (err error)
 	UpdateRefreshToken(ctx context.Context, userID int, token string) (err error)
 	DeleteRefreshToken(ctx context.Context, token string) (err error)
+	StoreUserWithOAuthAccount(ctx context.Context, input models.OAuthAccountInput) (userID int, err error)
+	StoreOAuthAccount(ctx context.Context, userID int, providerID, providerUserID string) (err error)
+	FindOAuthAccount(ctx context.Context, provider, providerUserID string) (*models.OAuthAccount, error)
+	FindExistsOauthAccount(ctx context.Context, userID int) (exists bool, err error)
 }
 
 type AuthService interface {
@@ -28,4 +32,16 @@ type AuthService interface {
 	AuthMe(ctx context.Context, userID int) (user dto.User, err error)
 	Refresh(ctx context.Context, token string) (accessToken, refreshToken string, err error)
 	Logout(ctx context.Context, token string) (err error)
+
+	// OAuthGithubCallback: Login or Register with github oAuth2
+	//  Flows:
+	//   Check user by email:
+	//    if user already exist -> check oauth_account by user_id
+	//     if oauth_account does not exists -> create oauth_accounts -> generate tokens
+	//     if oauth_account already exists -> generate tokens
+	//    if user does not exist -> create user and oauth_accounts -> generate tokens
+	OAuthGithubCallback(ctx context.Context, req dto.GithubReq) (accessToken, refreshToken string, err error)
+	OAuthGetGithubToken(ctx context.Context, code string) (accessToken string, err error)
+	OAuthGetGithubUser(ctx context.Context, token string) (user *dto.GithubUser, err error)
+	OauthGetGithubEmail(ctx context.Context, token string) (email string, err error)
 }

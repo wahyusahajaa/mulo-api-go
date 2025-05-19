@@ -2,9 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/wahyusahajaa/mulo-api-go/app/config"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
@@ -22,6 +27,7 @@ type authService struct {
 	verificationSvc verification.VerificationService
 	resendSvc       resend.ResendService
 	log             *logrus.Logger
+	config          *config.Config
 }
 
 func NewAuthService(
@@ -31,6 +37,7 @@ func NewAuthService(
 	verificationSvc verification.VerificationService,
 	resendSvc resend.ResendService,
 	log *logrus.Logger,
+	config *config.Config,
 ) contracts.AuthService {
 	return &authService{
 		authRepo:        authRepo,
@@ -39,6 +46,7 @@ func NewAuthService(
 		verificationSvc: verificationSvc,
 		resendSvc:       resendSvc,
 		log:             log,
+		config:          config,
 	}
 }
 
@@ -116,9 +124,19 @@ func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (access
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
 		return "", "", notFoundErr
 	}
+	if !user.Password.Valid {
+		oauthExists, err := svc.authRepo.FindExistsOauthAccount(ctx, user.Id)
+		if err != nil {
+			utils.LogError(svc.log, ctx, "auth_service", "Login", err)
+			return "", "", err
+		}
+		if oauthExists {
+			return "", "", errs.NewBadRequestError("This account was registered with GitHub. [Log in with GitHub]", nil)
+		}
+	}
 
 	// Check password
-	if !utils.CheckPasswordHash(req.Password, user.Password) {
+	if !utils.CheckPasswordHash(req.Password, user.Password.String) {
 		notFoundErr := errs.NewNotFoundErrorWithMsg("Password mismatch. Try again.")
 		utils.LogWarn(svc.log, ctx, "auth_service", "Login", notFoundErr)
 		return "", "", notFoundErr
@@ -130,7 +148,7 @@ func (svc *authService) Login(ctx context.Context, req dto.LoginRequest) (access
 		return "", "", forbiddenErr
 	}
 
-	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(user.Id, user.Username, user.Role)
+	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(user.Id, user.Username.String, user.Role)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "Login", err)
 		return "", "", err
@@ -271,7 +289,9 @@ func (svc *authService) AuthMe(ctx context.Context, userID int) (user dto.User, 
 	user.Id = result.Id
 	user.Fullname = result.Fullname
 	user.Email = result.Email
-	user.Username = result.Username
+	if result.Username.Valid {
+		user.Username = result.Username.String
+	}
 	user.Image = utils.ParseImageToJSON(result.Image)
 
 	return
@@ -323,6 +343,218 @@ func (svc *authService) Logout(ctx context.Context, token string) (err error) {
 	if err = svc.authRepo.DeleteRefreshToken(ctx, token); err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "Logout", err)
 		return
+	}
+
+	return
+}
+
+func (svc *authService) OAuthGetGithubToken(ctx context.Context, code string) (accessToken string, err error) {
+	var client = &http.Client{Timeout: 10 * time.Second}
+	var url = `https://github.com/login/oauth/access_token`
+
+	reqBody := fmt.Sprintf("client_id=%s&client_secret=%s&code=%s", svc.config.GithubClientID, svc.config.GithubClientSecret, code)
+	req, err := http.NewRequest("POST", url, nil)
+	req.Header.Set("Accept", "application/json")
+	req.URL.RawQuery = reqBody
+
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
+		return "", err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
+		return "", err
+	}
+	defer res.Body.Close()
+
+	var resData struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		Scope       string `json:"scope"`
+	}
+
+	if err := json.NewDecoder(res.Body).Decode(&resData); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
+		return "", err
+	}
+
+	return resData.AccessToken, nil
+}
+
+func (svc *authService) OAuthGetGithubUser(ctx context.Context, token string) (githubUser *dto.GithubUser, err error) {
+	var client = &http.Client{Timeout: 10 * time.Second}
+	var url = `https://api.github.com/user`
+
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Accept", "application/json")
+
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
+		return nil, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	githubUser = &dto.GithubUser{}
+	if err := json.NewDecoder(res.Body).Decode(&githubUser); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
+		return nil, err
+	}
+
+	return githubUser, nil
+}
+
+func (svc *authService) OauthGetGithubEmail(ctx context.Context, token string) (email string, err error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	url := "https://api.github.com/user/emails"
+
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+	req.Header.Set("Accept", "application/json")
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
+		return "", err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
+		return "", err
+	}
+
+	var emails []dto.GithubEmail
+	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
+		return "", err
+	}
+
+	return emails[0].Email, nil
+}
+
+func (svc *authService) OAuthGithubCallback(ctx context.Context, req dto.GithubReq) (accessToken, refreshToken string, err error) {
+	if errorMaps, err := utils.RequestValidate(&req); err != nil {
+		return "", "", errs.NewBadRequestError("validation failed", errorMaps)
+	}
+
+	// Get access token from github by auth code
+	githubToken, err := svc.OAuthGetGithubToken(ctx, req.Code)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+	if githubToken == "" {
+		unauthErr := errs.NewUnauthorizedError("Bad credentials.")
+		utils.LogWarn(svc.log, ctx, "auth_service", "OAuthGithubCallback", unauthErr)
+		return "", "", unauthErr
+	}
+
+	// Get user info from github by access token
+	githubUser, err := svc.OAuthGetGithubUser(ctx, githubToken)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+	// Check githubUser while empty
+	if githubUser == nil {
+		nfError := errs.NewNotFoundError("GithubUser", "code", req.Code)
+		utils.LogWarn(svc.log, ctx, "auth_service", "OAuthGithubCallback", nfError)
+		return "", "", nfError
+	}
+
+	// Fill missing email if not provided in user info
+	if githubUser.Email == "" {
+		emailCh := make(chan string)
+		errCh := make(chan error)
+
+		go func() {
+			email, err := svc.OauthGetGithubEmail(ctx, githubToken)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			emailCh <- email
+		}()
+
+		select {
+		case email := <-emailCh:
+			githubUser.Email = email
+		case err := <-errCh:
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+			return "", "", err
+		case <-ctx.Done():
+			timeoutErr := errs.NewTimeOut("Fetching GitHub email timed out")
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", timeoutErr)
+			return "", "", timeoutErr
+		}
+	}
+
+	// Use login as fallback name
+	if githubUser.Name == "" {
+		githubUser.Name = githubUser.Login
+	}
+
+	// Check user by github email
+	user, err := svc.userRepo.FindUserByEmail(ctx, githubUser.Email)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+
+	var userID int
+	var provider = "github"
+	var providerUserID = strconv.Itoa(githubUser.ID)
+
+	if user == nil {
+		input := models.OAuthAccountInput{
+			ID:       providerUserID,
+			Fullname: githubUser.Name,
+			Username: githubUser.Login,
+			Email:    githubUser.Email,
+			Image:    utils.ParseImageToByte(&dto.Image{Src: githubUser.AvatarURL, BlurHash: ""}),
+			Provider: provider,
+		}
+		// Store user with oauth_accounts
+		userID, err = svc.authRepo.StoreUserWithOAuthAccount(ctx, input)
+		if err != nil {
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+			return "", "", err
+		}
+	} else {
+		userID = user.Id
+		oAuthAccount, err := svc.authRepo.FindOAuthAccount(ctx, provider, providerUserID)
+		if err != nil {
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+			return "", "", err
+		}
+		if oAuthAccount == nil {
+			// Create new oauth_accounts
+			if err := svc.authRepo.StoreOAuthAccount(ctx, user.Id, provider, providerUserID); err != nil {
+				utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+				return "", "", err
+			}
+		}
+	}
+
+	// Generate access & refresh token
+	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(userID, githubUser.Login, "member")
+	if err != nil {
+		utils.LogWarn(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+
+	// Store refresh token
+	refreshTokenExpires := time.Now().Add(7 * 24 * time.Hour)
+	if err := svc.authRepo.StoreRefreshToken(ctx, userID, refreshToken, refreshTokenExpires); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
 	}
 
 	return

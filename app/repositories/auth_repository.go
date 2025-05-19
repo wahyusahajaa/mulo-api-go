@@ -76,9 +76,8 @@ func (repo *authRepository) StoreUserVerifyCode(ctx context.Context, userId int,
 
 func (repo *authRepository) UpdateUserVerifiedAt(ctx context.Context, userId int) (err error) {
 	query := `UPDATE users SET email_verified_at = $1 WHERE id = $2`
-	currentTime := time.Now()
 
-	if _, err = repo.db.ExecContext(ctx, query, currentTime, userId); err != nil {
+	if _, err = repo.db.ExecContext(ctx, query, time.Now(), userId); err != nil {
 		utils.LogError(repo.log, ctx, "auth_repo", "UpdateUserVerifiedAt", err)
 		return
 	}
@@ -138,5 +137,106 @@ func (repo *authRepository) DeleteRefreshToken(ctx context.Context, token string
 		utils.LogError(repo.log, ctx, "auth_repo", "DeleteRefreshToken", err)
 		return
 	}
+	return
+}
+
+func (repo *authRepository) StoreUserWithOAuthAccount(ctx context.Context, input models.OAuthAccountInput) (userID int, err error) {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccounts", err)
+		return 0, err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	userQuery := `INSERT INTO users(full_name, username, email, image, role, email_verified_at) VALUES($1, $2, $3, $4, $5, $6) RETURNING id`
+	userArgs := []any{input.Fullname, input.Username, input.Email, input.Image, "member", time.Now()}
+	if err = tx.QueryRowContext(ctx, userQuery, userArgs...).Scan(&userID); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccounts", err)
+		return 0, err
+	}
+
+	userAccountQuery := `INSERT INTO oauth_accounts(user_id, provider, provider_user_id) VALUES($1, $2, $3);`
+	userAccountArgs := []any{userID, input.Provider, input.ID}
+	if _, err = tx.ExecContext(ctx, userAccountQuery, userAccountArgs...); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccounts", err)
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func (repo *authRepository) FindOAuthAccount(ctx context.Context, provider string, providerUserID string) (oAuthAccount *models.OAuthAccount, err error) {
+	query := `SELECT id, user_id, provider, provider_user_id FROM oauth_accounts WHERE provider = $1 AND provider_user_id = $2`
+	args := []any{provider, providerUserID}
+	oAuthAccount = &models.OAuthAccount{}
+
+	if err := repo.db.QueryRowContext(ctx, query, args...).Scan(
+		&oAuthAccount.ID,
+		&oAuthAccount.UserID,
+		&oAuthAccount.Provider,
+		&oAuthAccount.ProviderUserID,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		utils.LogError(repo.log, ctx, "auth_repo", "FindOAuthAccount", err)
+		return nil, err
+	}
+
+	return oAuthAccount, nil
+}
+
+func (repo *authRepository) StoreOAuthAccount(ctx context.Context, userID int, providerID, providerUserID string) (err error) {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccount", err)
+		return err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	queryUpdateUser := `UPDATE users SET email_verified_at = $1 WHERE id = $2 AND email_verified_at IS NULL`
+	if _, err = tx.ExecContext(ctx, queryUpdateUser, time.Now(), userID); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccount", err)
+		return
+	}
+
+	userAccountQuery := `INSERT INTO oauth_accounts(user_id, provider, provider_user_id) VALUES($1, $2, $3);`
+	userAccountArgs := []any{userID, providerID, providerUserID}
+	if _, err = tx.ExecContext(ctx, userAccountQuery, userAccountArgs...); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "StoreOAuthAccount", err)
+		return
+	}
+
+	return
+}
+
+func (repo *authRepository) FindExistsOauthAccount(ctx context.Context, userID int) (exists bool, err error) {
+	query := `SELECT EXISTS (SELECT 1 FROM oauth_accounts WHERE user_id = $1)`
+	if err = repo.db.QueryRowContext(ctx, query, userID).Scan(&exists); err != nil {
+		utils.LogError(repo.log, ctx, "auth_repo", "FindExistsOauthAccount", err)
+		return
+	}
+
 	return
 }

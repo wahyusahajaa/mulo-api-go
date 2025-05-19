@@ -8,12 +8,14 @@ import (
 )
 
 type Config struct {
-	AppPort       string
-	AppEnv        string
-	JwtSecret     string
-	RefreshSecret string
-	DbURL         string
-	ResendKey     string
+	AppPort            string
+	AppEnv             string
+	JwtSecret          string
+	RefreshSecret      string
+	DbURL              string
+	ResendKey          string
+	GithubClientID     string
+	GithubClientSecret string
 }
 
 func NewConfig() *Config {
@@ -25,12 +27,14 @@ func NewConfig() *Config {
 	}
 
 	return &Config{
-		AppPort:       getEnv("APP_PORT", "3000"),
-		AppEnv:        getEnv("APP_ENV", "development"),
-		JwtSecret:     getEnv("JWT_SECRET", ""),
-		RefreshSecret: getEnv("REFRESH_SECRET", ""),
-		DbURL:         getEnv("DB_URL", ""),
-		ResendKey:     getEnv("RESEND_KEY", ""),
+		AppPort:            getEnv("APP_PORT", "3000"),
+		AppEnv:             getEnv("APP_ENV", "development"),
+		JwtSecret:          getEnv("JWT_SECRET", ""),
+		RefreshSecret:      getEnv("REFRESH_SECRET", ""),
+		DbURL:              getEnv("DB_URL", ""),
+		ResendKey:          getEnv("RESEND_KEY", ""),
+		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
+		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
 	}
 }
 

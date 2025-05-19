@@ -118,6 +118,13 @@ definitions:
       name:
         type: string
     type: object
+  GithubReq:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
   Image:
     properties:
       blur_hash:
@@ -134,6 +141,16 @@ definitions:
         example: abcd-1234
         type: string
     type: object
+  LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
   Pagination:
     properties:
       page:
@@ -149,6 +166,30 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  RegisterRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - username
+    type: object
+  ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
     type: object
   ResponseError:
     properties:
@@ -313,41 +354,7 @@ definitions:
         example: Validation failed
         type: string
     type: object
-  github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest:
-    properties:
-      email:
-        type: string
-      full_name:
-        type: string
-      password:
-        minLength: 6
-        type: string
-      username:
-        type: string
-    required:
-    - email
-    - full_name
-    - password
-    - username
-    type: object
-  github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
-    type: object
-  github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest:
+  VerifyRequest:
     properties:
       code:
         type: string
@@ -901,7 +908,7 @@ paths:
         name: login
         required: true
         schema:
-          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest'
+          $ref: '#/definitions/LoginRequest'
       produces:
       - application/json
       responses:
@@ -971,6 +978,49 @@ paths:
       summary: Get current authenticated user info
       tags:
       - auth
+  /auth/oauth/github/callback:
+    post:
+      consumes:
+      - application/json
+      description: Handles the redirect from GitHub after OAuth login/signup and returns
+        a JWT token if successful.
+      parameters:
+      - description: Authorization code received from GitHub redirect.
+        in: body
+        name: oauth
+        required: true
+        schema:
+          $ref: '#/definitions/GithubReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authenticated successfully with GitHub
+          schema:
+            $ref: '#/definitions/ResponseWithData-string-string'
+        "400":
+          description: Invalid request or missing code
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "401":
+          description: 'Unauthorized: Bad credentials'
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "404":
+          description: 'Not Found: Github user does not exists'
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "408":
+          description: 'Time Out: Fetching GitHub email timed out'
+          schema:
+            $ref: '#/definitions/ResponseError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ResponseError'
+      summary: OAuth GitHub Callback
+      tags:
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -1005,7 +1055,7 @@ paths:
         name: register
         required: true
         schema:
-          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest'
+          $ref: '#/definitions/RegisterRequest'
       produces:
       - application/json
       responses:
@@ -1040,7 +1090,7 @@ paths:
         name: resend
         required: true
         schema:
-          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest'
+          $ref: '#/definitions/ResendVerificationRequest'
       produces:
       - application/json
       responses:
@@ -1107,7 +1157,7 @@ paths:
         name: verify
         required: true
         schema:
-          $ref: '#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest'
+          $ref: '#/definitions/VerifyRequest'
       produces:
       - application/json
       responses:

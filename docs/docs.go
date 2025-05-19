@@ -854,7 +854,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest"
+                            "$ref": "#/definitions/LoginRequest"
                         }
                     }
                 ],
@@ -956,6 +956,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/oauth/github/callback": {
+            "post": {
+                "description": "Handles the redirect from GitHub after OAuth login/signup and returns a JWT token if successful.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "OAuth GitHub Callback",
+                "parameters": [
+                    {
+                        "description": "Authorization code received from GitHub redirect.",
+                        "name": "oauth",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GithubReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated successfully with GitHub",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseWithData-string-string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or missing code",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized: Bad credentials",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found: Github user does not exists",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseError"
+                        }
+                    },
+                    "408": {
+                        "description": "Time Out: Fetching GitHub email timed out",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseError"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Get a new access token using a valid refresh token from cookies",
@@ -1011,7 +1075,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest"
+                            "$ref": "#/definitions/RegisterRequest"
                         }
                     }
                 ],
@@ -1063,7 +1127,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest"
+                            "$ref": "#/definitions/ResendVerificationRequest"
                         }
                     }
                 ],
@@ -1165,7 +1229,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest"
+                            "$ref": "#/definitions/VerifyRequest"
                         }
                     }
                 ],
@@ -2970,6 +3034,17 @@ const docTemplate = `{
                 }
             }
         },
+        "GithubReq": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
         "Image": {
             "type": "object",
             "properties": {
@@ -2994,6 +3069,21 @@ const docTemplate = `{
                 }
             }
         },
+        "LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "Pagination": {
             "type": "object",
             "properties": {
@@ -3015,6 +3105,41 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "RegisterRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "full_name",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "ResendVerificationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
@@ -3273,57 +3398,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_wahyusahajaa_mulo-api-go_app_dto.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_wahyusahajaa_mulo-api-go_app_dto.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "full_name",
-                "password",
-                "username"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "full_name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 6
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_wahyusahajaa_mulo-api-go_app_dto.ResendVerificationRequest": {
-            "type": "object",
-            "required": [
-                "email"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_wahyusahajaa_mulo-api-go_app_dto.VerifyRequest": {
+        "VerifyRequest": {
             "type": "object",
             "required": [
                 "code",

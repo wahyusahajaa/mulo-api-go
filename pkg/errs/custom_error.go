@@ -161,3 +161,22 @@ func NewUnauthorizedError(message string, cause ...error) *Unauthorized {
 		},
 	}
 }
+
+type TimeOut struct {
+	*BaseError
+}
+
+func NewTimeOut(message string, cause ...error) *TimeOut {
+	var underlying error
+	if len(cause) > 0 {
+		underlying = cause[0]
+	}
+
+	return &TimeOut{
+		BaseError: &BaseError{
+			Message: message,
+			Code:    480,
+			Cause:   underlying,
+		},
+	}
+}

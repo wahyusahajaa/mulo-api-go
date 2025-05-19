@@ -40,6 +40,11 @@ func HandleHTTPError(c *fiber.Ctx, log *logrus.Logger, layer, operation string, 
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"message": e.Message,
 		})
+	case *TimeOut:
+		utils.LogWarn(log, c.Context(), layer, operation, err)
+		return c.Status(fiber.StatusRequestTimeout).JSON(fiber.Map{
+			"message": e.Message,
+		})
 	default:
 		utils.LogError(log, c.Context(), layer, operation, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

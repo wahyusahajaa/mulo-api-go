@@ -175,7 +175,7 @@ func NewTimeOut(message string, cause ...error) *TimeOut {
 	return &TimeOut{
 		BaseError: &BaseError{
 			Message: message,
-			Code:    480,
+			Code:    408,
 			Cause:   underlying,
 		},
 	}

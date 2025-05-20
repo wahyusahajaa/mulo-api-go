@@ -18,6 +18,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/services"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/logger"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/oauth"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/resend"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/verification"
 )
@@ -36,7 +37,8 @@ func InitializedApp() (*AppContainer, error) {
 	jwtService := jwt.NewJWTService(configConfig)
 	verificationService := verification.NewVerificationService(userRepository)
 	resendService := resend.NewResendService(configConfig)
-	authService := services.NewAuthService(authRepository, userRepository, jwtService, verificationService, resendService, logrusLogger, configConfig)
+	oAuthService := oauth.NewOauthService(configConfig, logrusLogger)
+	authService := services.NewAuthService(authRepository, userRepository, jwtService, verificationService, resendService, oAuthService, logrusLogger, configConfig)
 	authHandler := handlers.NewAuthHandler(authService, logrusLogger)
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
 	userService := services.NewUserService(userRepository, logrusLogger)
@@ -76,7 +78,7 @@ type AppContainer struct {
 	Config *config.Config
 }
 
-var commonSet = wire.NewSet(jwt.NewJWTService, resend.NewResendService, verification.NewVerificationService)
+var commonSet = wire.NewSet(jwt.NewJWTService, resend.NewResendService, verification.NewVerificationService, oauth.NewOauthService)
 
 var authSet = wire.NewSet(repositories.NewAuthRepository, services.NewAuthService, handlers.NewAuthHandler)
 

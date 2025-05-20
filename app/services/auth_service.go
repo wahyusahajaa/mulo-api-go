@@ -2,9 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -15,6 +12,7 @@ import (
 	"github.com/wahyusahajaa/mulo-api-go/app/models"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/oauth"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/resend"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/verification"
@@ -26,6 +24,7 @@ type authService struct {
 	jwtSvc          jwt.JWTService
 	verificationSvc verification.VerificationService
 	resendSvc       resend.ResendService
+	oauth           oauth.OAuthService
 	log             *logrus.Logger
 	config          *config.Config
 }
@@ -36,6 +35,7 @@ func NewAuthService(
 	jwtSvc jwt.JWTService,
 	verificationSvc verification.VerificationService,
 	resendSvc resend.ResendService,
+	oauth oauth.OAuthService,
 	log *logrus.Logger,
 	config *config.Config,
 ) contracts.AuthService {
@@ -45,6 +45,7 @@ func NewAuthService(
 		jwtSvc:          jwtSvc,
 		verificationSvc: verificationSvc,
 		resendSvc:       resendSvc,
+		oauth:           oauth,
 		log:             log,
 		config:          config,
 	}
@@ -348,104 +349,13 @@ func (svc *authService) Logout(ctx context.Context, token string) (err error) {
 	return
 }
 
-func (svc *authService) OAuthGetGithubToken(ctx context.Context, code string) (accessToken string, err error) {
-	var client = &http.Client{Timeout: 10 * time.Second}
-	var url = `https://github.com/login/oauth/access_token`
-
-	reqBody := fmt.Sprintf("client_id=%s&client_secret=%s&code=%s", svc.config.GithubClientID, svc.config.GithubClientSecret, code)
-	req, err := http.NewRequest("POST", url, nil)
-	req.Header.Set("Accept", "application/json")
-	req.URL.RawQuery = reqBody
-
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
-		return "", err
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
-		return "", err
-	}
-	defer res.Body.Close()
-
-	var resData struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		Scope       string `json:"scope"`
-	}
-
-	if err := json.NewDecoder(res.Body).Decode(&resData); err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubToken", err)
-		return "", err
-	}
-
-	return resData.AccessToken, nil
-}
-
-func (svc *authService) OAuthGetGithubUser(ctx context.Context, token string) (githubUser *dto.GithubUser, err error) {
-	var client = &http.Client{Timeout: 10 * time.Second}
-	var url = `https://api.github.com/user`
-
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Accept", "application/json")
-
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
-		return nil, err
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	githubUser = &dto.GithubUser{}
-	if err := json.NewDecoder(res.Body).Decode(&githubUser); err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OAuthGetGithubUser", err)
-		return nil, err
-	}
-
-	return githubUser, nil
-}
-
-func (svc *authService) OauthGetGithubEmail(ctx context.Context, token string) (email string, err error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	url := "https://api.github.com/user/emails"
-
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Accept", "application/json")
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
-		return "", err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
-		return "", err
-	}
-
-	var emails []dto.GithubEmail
-	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
-		utils.LogError(svc.log, ctx, "auth_service", "OauthGetGithubEmail", err)
-		return "", err
-	}
-
-	return emails[0].Email, nil
-}
-
 func (svc *authService) OAuthGithubCallback(ctx context.Context, req dto.GithubReq) (accessToken, refreshToken string, err error) {
 	if errorMaps, err := utils.RequestValidate(&req); err != nil {
 		return "", "", errs.NewBadRequestError("validation failed", errorMaps)
 	}
 
 	// Get access token from github by auth code
-	githubToken, err := svc.OAuthGetGithubToken(ctx, req.Code)
+	githubToken, err := svc.oauth.GithubAccessToken(ctx, req.Code)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
 		return "", "", err
@@ -457,7 +367,7 @@ func (svc *authService) OAuthGithubCallback(ctx context.Context, req dto.GithubR
 	}
 
 	// Get user info from github by access token
-	githubUser, err := svc.OAuthGetGithubUser(ctx, githubToken)
+	githubUser, err := svc.oauth.GithubUserInfo(ctx, githubToken)
 	if err != nil {
 		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
 		return "", "", err
@@ -475,7 +385,7 @@ func (svc *authService) OAuthGithubCallback(ctx context.Context, req dto.GithubR
 		errCh := make(chan error)
 
 		go func() {
-			email, err := svc.OauthGetGithubEmail(ctx, githubToken)
+			email, err := svc.oauth.GithubUserEmail(ctx, githubToken)
 			if err != nil {
 				errCh <- err
 				return

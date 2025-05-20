@@ -41,7 +41,4 @@ type AuthService interface {
 	//     if oauth_account already exists -> generate tokens
 	//    if user does not exist -> create user and oauth_accounts -> generate tokens
 	OAuthGithubCallback(ctx context.Context, req dto.GithubReq) (accessToken, refreshToken string, err error)
-	OAuthGetGithubToken(ctx context.Context, code string) (accessToken string, err error)
-	OAuthGetGithubUser(ctx context.Context, token string) (user *dto.GithubUser, err error)
-	OauthGetGithubEmail(ctx context.Context, token string) (email string, err error)
 }

@@ -2,3 +2,6 @@
 logs/
 cert/
 .DS_Store
+.env.production
+.env.development
+tmp/

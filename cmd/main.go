@@ -11,7 +11,7 @@ import (
 // @description This documentation for access Mulo Music Streaming
 // @contact.name The Developer
 // @contact.email wahyusahaja.official@gmail.com
-// @host localhost:3000
+// @host localhost:8081
 // @BasePath /v1
 // @schemes http https
 // @securityDefinitions.apikey BearerAuth

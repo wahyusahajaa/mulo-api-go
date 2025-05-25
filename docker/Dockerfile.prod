@@ -1,0 +1,26 @@
+# Dockerfile
+FROM golang:1.24.3 as builder
+
+WORKDIR /app
+
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main ./cmd
+
+# Production stage
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+
+# Copy the cert directory into the container
+COPY ./cert /app/cert
+
+EXPOSE 8080
+
+CMD ["./main"]

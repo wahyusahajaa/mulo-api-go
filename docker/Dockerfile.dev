@@ -1,0 +1,25 @@
+FROM golang:1.24
+
+# RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git curl \
+  && curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s -- -b /usr/local/bin
+
+WORKDIR /app
+
+# Copy and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy codes
+COPY . .
+
+# Build go app
+# RUN go build -o main ./cmd
+
+# Expose Port
+EXPOSE 8081
+
+# Run app
+# CMD ["./main"]
+# CMD ["sh", "-c", "go build -o main ./cmd && ./main"]
+CMD ["air"]

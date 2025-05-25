@@ -1,0 +1,43 @@
+version: '3.9'
+services:
+  app:
+    container_name: mulo-api-dev
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    ports:
+      - 8081:8081
+    env_file:
+      - .env.development
+    restart: unless-stopped
+    networks:
+      - mulo-api-dev
+    volumes:
+      - .:/app                                # bind mounts
+      - go-pkg:/go/pkg                        # module cache
+      - go-build:/root/.cache/go-build        # Build cache
+    depends_on:
+      - db
+  db:
+    container_name: mulo-db-dev
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tungtungsahur}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS:-tralalelotralalala}
+      POSTGRES_DB: ${POSTGRES_DB:-mulo_bombardino}
+    volumes:
+      - app-data:/var/lib/postgresql/data  # mount postgres data
+    networks:
+    - mulo-api-dev
+    ports:
+      - 5433:5432
+
+volumes:
+  go-pkg:       # for downloaded modules
+  go-build:     # For compilation results
+  app-data:     # For mouting postgres data
+
+networks:
+  mulo-api-dev:
+    driver: bridge

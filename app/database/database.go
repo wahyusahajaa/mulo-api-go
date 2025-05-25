@@ -14,7 +14,9 @@ type DB struct {
 }
 
 func NewDB(cfg *config.Config) (*DB, error) {
-	db, err := sql.Open("postgres", cfg.DbURL)
+	var DbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.DBUser, cfg.DBPass, cfg.DBHost, cfg.DBPort, cfg.DBname)
+
+	db, err := sql.Open("postgres", DbURL)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

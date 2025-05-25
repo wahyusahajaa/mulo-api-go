@@ -12,7 +12,11 @@ type Config struct {
 	AppEnv             string
 	JwtSecret          string
 	RefreshSecret      string
-	DbURL              string
+	DBHost             string
+	DBPort             string
+	DBUser             string
+	DBPass             string
+	DBname             string
 	ResendKey          string
 	GithubClientID     string
 	GithubClientSecret string
@@ -20,18 +24,22 @@ type Config struct {
 
 func NewConfig() *Config {
 	if os.Getenv("APP_ENV") != "production" {
-		err := godotenv.Load()
+		err := godotenv.Load(".env.development")
 		if err != nil {
-			log.Println("Warning: No .env file found")
+			log.Println("Warning: .env.development file not found")
 		}
 	}
 
 	return &Config{
-		AppPort:            getEnv("APP_PORT", "3000"),
+		AppPort:            getEnv("APP_PORT", "8081"),
 		AppEnv:             getEnv("APP_ENV", "development"),
 		JwtSecret:          getEnv("JWT_SECRET", ""),
 		RefreshSecret:      getEnv("REFRESH_SECRET", ""),
-		DbURL:              getEnv("DB_URL", ""),
+		DBHost:             getEnv("DB_HOST", "localhost"),
+		DBPort:             getEnv("DB_PORT", "5432"),
+		DBUser:             getEnv("DB_USER", "postgres"),
+		DBPass:             getEnv("DB_PASS", "postgres"),
+		DBname:             getEnv("DB_NAME", "postgres"),
 		ResendKey:          getEnv("RESEND_KEY", ""),
 		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
 		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),

@@ -37,6 +37,7 @@ This application is built from scratch and is ideal for developers looking to le
 ### Development Environment
 
 #### 1. Build and Run
+
 Ensure .env.development exists and contains the appropriate environment variables.
 
 ```bash
@@ -77,18 +78,19 @@ This will use:
 ---
 
 ### Run Migrations
+
 Place your migration SQL files inside the `migrations/` folder using the format:
 
-  ```
-  001_create_users_table.up.sql
-  001_create_users_table.down.sql
-  ```
+```
+001_create_users_table.up.sql
+001_create_users_table.down.sql
+```
 
 **Up (Apply Migrations)**
 
 ```bash
 docker run --rm -v $(pwd)/migrations:/migrations \
-  --network mulo-go-api_mulo-api-dev \
+  --network mulo-api-go_mulo-api-dev \
   migrate/migrate -path=/migrations \
   -database "postgres://tungtungsahur:tralalelotralalala@mulo-db-dev:5432/mulo_bombardino?sslmode=disable" up
 ```
@@ -114,5 +116,6 @@ To run all test files inside the `app/services` directory and its sub-packages, 
 ```bash
 go test -v ./app/services/...
 ```
+
 - **-v** Verbose output
 - **./app/services/...** Run all tests recursively under app/services

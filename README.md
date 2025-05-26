@@ -12,6 +12,7 @@ This project is a monolithic REST API implementation built with **Go** using the
 - Dockerized for easy deployment and testing.
 
 **Purpose**
+
 This application is built from scratch and is ideal for developers looking to learn modern backend development with Go. It is a foundational project before transitioning to Microservices Architecture and Fully Embracing DevOps Practices.
 
 ## Getting Started

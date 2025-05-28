@@ -20,7 +20,7 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 		return c.SendString("Welcome to Mulo")
 	})
 
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	app.Get("/docs/*", swagger.HandlerDefault)
 	v1.Get("/ping", Ping)
 
 	authGroup := v1.Group("auth")

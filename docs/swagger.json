@@ -13,7 +13,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:3000",
+    "host": "api.mulo.site",
     "basePath": "/v1",
     "paths": {
         "/albums": {

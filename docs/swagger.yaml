@@ -364,7 +364,7 @@ definitions:
     - code
     - email
     type: object
-host: localhost:3000
+host: api.mulo.site
 info:
   contact:
     email: wahyusahaja.official@gmail.com

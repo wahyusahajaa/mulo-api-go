@@ -1,12 +1,27 @@
 version: '3.9'
 services:
+  nginx:
+    container_name: mulo-api-nginx
+    image: nginx:stable-alpine
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    volumes:
+      - ./nginx/conf/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs/selfsigned.crt:/etc/nginx/certs/selfsigned.crt:ro
+      - ./nginx/certs/selfsigned.key:/etc/nginx/certs/selfsigned.key:ro
+    depends_on:
+      - app
+    networks:
+      - mulo-api-dev
   app:
     container_name: mulo-api-dev
     build: 
       context: .
       dockerfile: docker/Dockerfile.dev
     ports:
-      - 8081:8081
+      - 8080:8080
     env_file:
       - .env.development
     restart: unless-stopped

@@ -17,6 +17,8 @@ type Config struct {
 	DBUser             string
 	DBPass             string
 	DBname             string
+	DBSSLMode          string
+	DBSSLRootCert      string
 	ResendKey          string
 	GithubClientID     string
 	GithubClientSecret string
@@ -40,6 +42,8 @@ func NewConfig() *Config {
 		DBUser:             getEnv("DB_USER", "postgres"),
 		DBPass:             getEnv("DB_PASS", "postgres"),
 		DBname:             getEnv("DB_NAME", "postgres"),
+		DBSSLMode:          getEnv("DB_SSL_MODE", "disable"),
+		DBSSLRootCert:      getEnv("DB_SSL_ROOT_CERT", ""),
 		ResendKey:          getEnv("RESEND_KEY", ""),
 		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
 		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),

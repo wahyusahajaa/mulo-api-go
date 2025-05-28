@@ -1,6 +1,6 @@
 .env
 logs/
-cert/
+certs/
 .DS_Store
 .env.production
 .env.development

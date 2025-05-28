@@ -11,7 +11,7 @@ import (
 // @description This documentation for access Mulo Music Streaming
 // @contact.name The Developer
 // @contact.email wahyusahaja.official@gmail.com
-// @host localhost:8081
+// @host api.mulo.site
 // @BasePath /v1
 // @schemes http https
 // @securityDefinitions.apikey BearerAuth
@@ -25,12 +25,7 @@ func main() {
 		log.Fatalf("failed to Initialized app: %v", err)
 	}
 
-	// if err := app.App.Listen(":" + app.Config.AppPort); err != nil {
-	// 	log.Fatalf("failed to start server: %v", err)
-	// }
-
-	// for https
-	if err := app.App.ListenTLS(":"+app.Config.AppPort, "./cert/cert.pem", "./cert/key.pem"); err != nil {
+	if err := app.App.Listen(":" + app.Config.AppPort); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

@@ -36,9 +36,11 @@ This application is built from scratch and is ideal for developers looking to le
 
 ### Development Environment
 
-#### 1. Build and Run
+Ensure `.env.development` exists and contains the appropriate environment variables.
 
-Ensure .env.development exists and contains the appropriate environment variables.
+Add `127.0.0.1 api.mulo.site` to /etc/hosts on your local machine.
+
+#### 1. Build and Run
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build
@@ -61,9 +63,9 @@ docker compose -f docker-compose.dev.yml logs
 
 ### Production Deployment
 
-#### 1. Build and Run
-
 Ensure `.env.production` exists and contains the appropriate environment variables.
+
+#### 1. Build and Run
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
@@ -109,7 +111,7 @@ swag init -g cmd/main.go --parseDependency --parseInternal
 
 This project uses Go's standard testing framework along with the [Testify](https://github.com/stretchr/testify) package for writing expressive unit tests.
 
-#### ✅ Run All Tests in `app/services`
+#### Run All Tests in `app/services`
 
 To run all test files inside the `app/services` directory and its sub-packages, use:
 

@@ -18,9 +18,6 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 
-# Copy the cert directory into the container
-COPY ./cert /app/cert
-
 EXPOSE 8080
 
 CMD ["./main"]

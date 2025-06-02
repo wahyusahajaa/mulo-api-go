@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
@@ -134,4 +135,31 @@ func (j *jwtService) ExtractTokenFromHeader(authHeader string) (string, error) {
 	}
 
 	return parts[1], nil
+}
+
+func (j *jwtService) AddTokenCookies(c *fiber.Ctx, accessToken string, refreshToken string) {
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Path:     "/",
+		Value:    accessToken,
+		Expires:  time.Now().Add(j.AccessTokenExpires),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "none",
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Path:     "/",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(j.RefreshTokenExpires),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "none",
+	})
+}
+
+func (j *jwtService) ClearTokenCookies(c *fiber.Ctx) {
+	c.ClearCookie("access_token")
+	c.ClearCookie("refresh_token")
 }

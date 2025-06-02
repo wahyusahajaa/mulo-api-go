@@ -294,6 +294,7 @@ func (svc *authService) AuthMe(ctx context.Context, userID int) (user dto.User, 
 		user.Username = result.Username.String
 	}
 	user.Image = utils.ParseImageToJSON(result.Image)
+	user.Role = result.Role
 
 	return
 }
@@ -455,6 +456,68 @@ func (svc *authService) OAuthGithubCallback(ctx context.Context, req dto.GithubR
 
 	// Generate access & refresh token
 	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(userID, githubUser.Login, "member")
+	if err != nil {
+		utils.LogWarn(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+
+	// Store refresh token
+	refreshTokenExpires := time.Now().Add(7 * 24 * time.Hour)
+	if err := svc.authRepo.StoreRefreshToken(ctx, userID, refreshToken, refreshTokenExpires); err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+
+	return
+}
+
+func (svc *authService) OAuthCallback(ctx context.Context, req dto.OAuthRequest) (accessToken string, refreshToken string, err error) {
+	if errorMaps, err := utils.RequestValidate(&req); err != nil {
+		return "", "", errs.NewBadRequestError("validation failed", errorMaps)
+	}
+
+	// Check user by github email
+	user, err := svc.userRepo.FindUserByEmail(ctx, req.Email)
+	if err != nil {
+		utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+		return "", "", err
+	}
+
+	var userID int
+
+	if user == nil {
+		input := models.OAuthAccountInput{
+			ID:       req.ProviderID,
+			Fullname: req.Fullname,
+			Username: req.Username,
+			Email:    req.Email,
+			Image:    utils.ParseImageToByte(&dto.Image{Src: req.Avatar, BlurHash: ""}),
+			Provider: req.Provider,
+		}
+		// Store user with oauth_accounts
+		userID, err = svc.authRepo.StoreUserWithOAuthAccount(ctx, input)
+		if err != nil {
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+			return "", "", err
+		}
+	} else {
+		userID = user.Id
+		oAuthAccount, err := svc.authRepo.FindOAuthAccount(ctx, req.Provider, req.ProviderID)
+		if err != nil {
+			utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+			return "", "", err
+		}
+		if oAuthAccount == nil {
+			// Create new oauth_accounts
+			if err := svc.authRepo.StoreOAuthAccount(ctx, user.Id, req.Provider, req.ProviderID); err != nil {
+				utils.LogError(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
+				return "", "", err
+			}
+		}
+	}
+
+	// Generate access & refresh token
+	accessToken, refreshToken, err = svc.jwtSvc.GenerateTokens(userID, req.Username, "member")
 	if err != nil {
 		utils.LogWarn(svc.log, ctx, "auth_service", "OAuthGithubCallback", err)
 		return "", "", err

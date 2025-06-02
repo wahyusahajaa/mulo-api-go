@@ -22,6 +22,7 @@ type Config struct {
 	ResendKey          string
 	GithubClientID     string
 	GithubClientSecret string
+	AllowOrigins       string
 }
 
 func NewConfig() *Config {
@@ -47,6 +48,7 @@ func NewConfig() *Config {
 		ResendKey:          getEnv("RESEND_KEY", ""),
 		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
 		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
+		AllowOrigins:       getEnv("ALLOW_ORIGINS", ""),
 	}
 }
 

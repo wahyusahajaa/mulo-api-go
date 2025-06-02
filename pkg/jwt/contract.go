@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 )
 
@@ -10,4 +11,6 @@ type JWTService interface {
 	ParseAccessToken(tokenString string) (claims *dto.JWTCustomClaims, err error)
 	ParseRefreshToken(tokenString string) (claims *dto.JWTCustomClaims, err error)
 	ExtractTokenFromHeader(authHeader string) (string, error)
+	AddTokenCookies(c *fiber.Ctx, accessToken, refreshToken string)
+	ClearTokenCookies(c *fiber.Ctx)
 }

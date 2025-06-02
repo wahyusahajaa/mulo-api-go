@@ -3,7 +3,9 @@ package oauth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -108,11 +110,28 @@ func (svc *oauthService) GithubUserEmail(ctx context.Context, token string) (ema
 		utils.LogError(svc.log, ctx, "oauthGithub_service", "GithubUserEmail", err)
 		return "", err
 	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		utils.LogError(svc.log, ctx, "oauthGithub_service", "GithubUserEmail", fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body)))
+		return "", fmt.Errorf("GitHub API error")
+	}
 
 	var emails []dto.GithubEmail
-	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+	if err := json.Unmarshal(body, &emails); err != nil {
 		utils.LogError(svc.log, ctx, "oauthGithub_service", "GithubUserEmail", err)
 		return "", err
+	}
+
+	if len(emails) == 0 {
+		return "", errors.New("no email found from GitHub")
+	}
+
+	for _, e := range emails {
+		if e.Primary && e.Verified {
+			return e.Email, nil
+		}
 	}
 
 	return emails[0].Email, nil

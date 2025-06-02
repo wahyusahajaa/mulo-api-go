@@ -61,7 +61,7 @@ func (h *FavoriteHandler) GetFavoriteSongsByUserID(c *fiber.Ctx) error {
 // @Param 			songId path int true "Song ID"
 // @Success 		201 	{object} 	dto.ResponseMessage
 // @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Song does not exists."
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Song already exists on favorites."
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict: Song already exists on favorites."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/favorites/songs/{songId} [post]
 func (h *FavoriteHandler) AddFavoriteSong(c *fiber.Ctx) error {
@@ -85,7 +85,7 @@ func (h *FavoriteHandler) AddFavoriteSong(c *fiber.Ctx) error {
 // @Produce 		json
 // @Param 			songId path int true "Song ID"
 // @Success 		200 	{object} 	dto.ResponseMessage
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Song on favorites does not exists."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Song on favorites does not exists."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/favorites/songs/{songId} [delete]
 func (h *FavoriteHandler) RemoveFavoriteSong(c *fiber.Ctx) error {

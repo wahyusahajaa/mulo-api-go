@@ -83,15 +83,15 @@ func (h *AlbumHandler) GetAlbum(c *fiber.Ctx) error {
 // @Param 			album	 body		dto.CreateAlbumRequest true "Album object that needs to be created"
 // @Success 		201 	{object} 	dto.ResponseMessage
 // @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found"
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict album name"
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found"
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict album name"
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/albums [post]
 func (h *AlbumHandler) CreateAlbum(c *fiber.Ctx) error {
 	var req dto.CreateAlbumRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -116,7 +116,7 @@ func (h *AlbumHandler) CreateAlbum(c *fiber.Ctx) error {
 // @Success 		200 	{object} 	dto.ResponseMessage
 // @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
 // @Failure 		404 	{object} 	dto.ErrorResponse "Not Found: album or artist not found"
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: album name"
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict: album name"
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/albums/{id} [put]
 func (h *AlbumHandler) UpdateAlbum(c *fiber.Ctx) error {
@@ -124,7 +124,7 @@ func (h *AlbumHandler) UpdateAlbum(c *fiber.Ctx) error {
 	var req dto.CreateAlbumRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}

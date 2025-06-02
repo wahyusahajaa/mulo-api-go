@@ -6,6 +6,7 @@ type User struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Image    Image  `json:"image"`
+	Role     string `json:"role"`
 } //@name User
 
 type CreateUserInput struct {

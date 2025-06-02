@@ -74,6 +74,7 @@ func (svc *userService) GetUserById(ctx context.Context, userID int) (user dto.U
 		Username: result.Username.String,
 		Email:    result.Email,
 		Image:    utils.ParseImageToJSON(result.Image),
+		Role:     result.Role,
 	}
 
 	return user, nil

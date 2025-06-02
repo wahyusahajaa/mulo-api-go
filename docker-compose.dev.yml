@@ -1,23 +1,23 @@
-version: '3.9'
+version: "3.9"
 services:
-  nginx:
-    container_name: mulo-api-nginx
-    image: nginx:stable-alpine
-    ports:
-      - 80:80
-      - 443:443
-    restart: unless-stopped
-    volumes:
-      - ./nginx/conf/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/certs/selfsigned.crt:/etc/nginx/certs/selfsigned.crt:ro
-      - ./nginx/certs/selfsigned.key:/etc/nginx/certs/selfsigned.key:ro
-    depends_on:
-      - app
-    networks:
-      - mulo-api-dev
+  # nginx:
+  #   container_name: mulo-api-nginx
+  #   image: nginx:stable-alpine
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./nginx/conf/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - ./nginx/certs/api.mulo.site.pem:/etc/nginx/certs/selfsigned.crt:ro
+  #     - ./nginx/certs/api.mulo.site-key.pem:/etc/nginx/certs/selfsigned.key:ro
+  #   depends_on:
+  #     - app
+  #   networks:
+  #     - mulo-shared-net
   app:
     container_name: mulo-api-dev
-    build: 
+    build:
       context: .
       dockerfile: docker/Dockerfile.dev
     ports:
@@ -26,11 +26,11 @@ services:
       - .env.development
     restart: unless-stopped
     networks:
-      - mulo-api-dev
+      - mulo-shared-net
     volumes:
-      - .:/app                                # bind mounts
-      - go-pkg:/go/pkg                        # module cache
-      - go-build:/root/.cache/go-build        # Build cache
+      - .:/app # bind mounts
+      - go-pkg:/go/pkg # module cache
+      - go-build:/root/.cache/go-build # Build cache
     depends_on:
       - db
   db:
@@ -42,17 +42,17 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASS:-tralalelotralalala}
       POSTGRES_DB: ${POSTGRES_DB:-mulo_bombardino}
     volumes:
-      - app-data:/var/lib/postgresql/data  # mount postgres data
+      - app-data:/var/lib/postgresql/data # mount postgres data
     networks:
-    - mulo-api-dev
+      - mulo-shared-net
     ports:
       - 5433:5432
 
 volumes:
-  go-pkg:       # for downloaded modules
-  go-build:     # For compilation results
-  app-data:     # For mouting postgres data
+  go-pkg: # for downloaded modules
+  go-build: # For compilation results
+  app-data: # For mouting postgres data
 
 networks:
-  mulo-api-dev:
-    driver: bridge
+  mulo-shared-net:
+    external: true

@@ -20,8 +20,6 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		connString += "&sslrootcert=" + cfg.DBSSLRootCert
 	}
 
-	fmt.Println(connString)
-
 	db, err := sql.Open("postgres", connString)
 
 	if err != nil {

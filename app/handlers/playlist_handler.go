@@ -93,7 +93,7 @@ func (h *PlaylistHandler) CreatePlaylist(c *fiber.Ctx) error {
 	var req dto.CreatePlaylistRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -127,7 +127,7 @@ func (h *PlaylistHandler) UpdatePlaylist(c *fiber.Ctx) error {
 	userId := utils.GetUserId(c.Context())
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -203,8 +203,8 @@ func (h *PlaylistHandler) GetPlaylistSongs(c *fiber.Ctx) error {
 // @Param 			songId	path int true "Song ID"
 // @Success 		201 	{object} 	dto.ResponseMessage
 // @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Playlist or song does not exists."
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Song already exists on playlist."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Playlist or song does not exists."
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict: Song already exists on playlist."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/playlists/{id}/songs/{songId} [post]
 func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
@@ -231,7 +231,7 @@ func (h *PlaylistHandler) CreatePlaylistSong(c *fiber.Ctx) error {
 // @Param 			id 		path int true "Playlist ID"
 // @Param 			songId 	path int true "Song ID"
 // @Success 		200 	{object} 	dto.ResponseMessage
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Song on playlist does not exists."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Song on playlist does not exists."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/playlists/{id}/songs/{songId} [delete]
 func (h *PlaylistHandler) DeletePlaylistSong(c *fiber.Ctx) error {

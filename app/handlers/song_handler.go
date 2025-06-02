@@ -89,7 +89,7 @@ func (h *SongHandler) CreateSong(c *fiber.Ctx) error {
 	var req dto.CreateSongRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -121,7 +121,7 @@ func (h *SongHandler) UpdateSong(c *fiber.Ctx) error {
 	id, _ := strconv.Atoi(c.Params("id"))
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}

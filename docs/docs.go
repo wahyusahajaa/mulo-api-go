@@ -108,13 +108,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict album name",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -228,7 +228,7 @@ const docTemplate = `{
                     "409": {
                         "description": "Conflict: album name",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -431,7 +431,7 @@ const docTemplate = `{
                     "409": {
                         "description": "Conflict artist name",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -545,7 +545,7 @@ const docTemplate = `{
                     "409": {
                         "description": "Conflict: artist name",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -762,13 +762,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Genre or artist does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict: Genre already exists on artist.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -822,7 +822,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Genre on artist does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -836,7 +836,7 @@ const docTemplate = `{
         },
         "/auth/login": {
             "post": {
-                "description": "Authenticates a user and returns a JWT token if successful.",
+                "description": "Authenticates a user and set cookies JWT token and refresh if successful.",
                 "consumes": [
                     "application/json"
                 ],
@@ -859,8 +859,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/ResponseMessage"
                         }
@@ -874,13 +874,13 @@ const docTemplate = `{
                     "403": {
                         "description": "Account not activated",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Invalid email or password",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -894,7 +894,7 @@ const docTemplate = `{
         },
         "/auth/logout": {
             "post": {
-                "description": "Remove refresh token from cookies and revoke session",
+                "description": "Remove access and refresh token from cookies and revoke session",
                 "consumes": [
                     "application/json"
                 ],
@@ -915,13 +915,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -956,9 +956,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/oauth/callback": {
+            "post": {
+                "description": "Handles the redirect from OAuth login/signup and set cookies JWT token and refresh if successful.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "handles OAuth callback from login/register.",
+                "parameters": [
+                    {
+                        "description": "oauth object that needs to be login/register",
+                        "name": "oauth",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/OAuthRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated successfully with OAuth",
+                        "schema": {
+                            "$ref": "#/definitions/ResponseMessage"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/oauth/github/callback": {
             "post": {
-                "description": "Handles the redirect from GitHub after OAuth login/signup and returns a JWT token if successful.",
+                "description": "Handles the redirect from GitHub after OAuth login/signup and set cookies JWT token and refresh if successful.",
                 "consumes": [
                     "application/json"
                 ],
@@ -984,37 +1030,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Authenticated successfully with GitHub",
                         "schema": {
-                            "$ref": "#/definitions/ResponseWithData-string-string"
+                            "$ref": "#/definitions/ResponseMessage"
                         }
                     },
                     "400": {
                         "description": "Invalid request or missing code",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized: Bad credentials",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found: Github user does not exists",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "408": {
                         "description": "Time Out: Fetching GitHub email timed out",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -1035,21 +1081,21 @@ const docTemplate = `{
                 "summary": "Refresh access token",
                 "responses": {
                     "200": {
-                        "description": "New access token",
+                        "description": "Success",
                         "schema": {
-                            "$ref": "#/definitions/ResponseWithData-string-string"
+                            "$ref": "#/definitions/ResponseMessage"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/ResponseError"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -1095,7 +1141,7 @@ const docTemplate = `{
                     "409": {
                         "description": "Username or email already exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -1147,13 +1193,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Email does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email is already verified.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -1197,7 +1243,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Email does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -1249,19 +1295,19 @@ const docTemplate = `{
                     "404": {
                         "description": "Email or Code does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email is already verified.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "410": {
                         "description": "Code has expired.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -1363,7 +1409,7 @@ const docTemplate = `{
                     "409": {
                         "description": "Conflict: Song already exists on favorites.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -1410,7 +1456,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Song on favorites does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -2153,13 +2199,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Playlist or song does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict: Song already exists on playlist.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -2213,7 +2259,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Song on playlist does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -2580,13 +2626,13 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Genre or song does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict: Genre already exists on song.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -2640,7 +2686,7 @@ const docTemplate = `{
                     "404": {
                         "description": "Not Found: Genre on song does not exists.",
                         "schema": {
-                            "$ref": "#/definitions/ValidationErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
@@ -3084,6 +3130,37 @@ const docTemplate = `{
                 }
             }
         },
+        "OAuthRequest": {
+            "type": "object",
+            "required": [
+                "avatar",
+                "email",
+                "full_name",
+                "provider",
+                "provider_id",
+                "username"
+            ],
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "Pagination": {
             "type": "object",
             "properties": {
@@ -3140,14 +3217,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
-                    "type": "string"
-                }
-            }
-        },
-        "ResponseError": {
-            "type": "object",
-            "properties": {
-                "message": {
                     "type": "string"
                 }
             }
@@ -3244,17 +3313,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/Song"
                     }
-                }
-            }
-        },
-        "ResponseWithData-string-string": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
                 }
             }
         },
@@ -3379,6 +3437,9 @@ const docTemplate = `{
                 },
                 "image": {
                     "$ref": "#/definitions/Image"
+                },
+                "role": {
+                    "type": "string"
                 },
                 "username": {
                     "type": "string"

@@ -172,8 +172,8 @@ func (h *GenreHandler) DeleteGenre(c *fiber.Ctx) error {
 // @Param 			genreId path int true "Genre ID"
 // @Success 		201 	{object} 	dto.ResponseMessage
 // @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre or artist does not exists."
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Genre already exists on artist."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Genre or artist does not exists."
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict: Genre already exists on artist."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/artists/{id}/genres/{genreId} [post]
 func (h *GenreHandler) CreateArtistGenre(c *fiber.Ctx) error {
@@ -223,7 +223,7 @@ func (h *GenreHandler) GetArtistGenres(c *fiber.Ctx) error {
 // @Param 			id 		path int true "Artist ID"
 // @Param 			genreId path int true "Genre ID"
 // @Success 		200 	{object} 	dto.ResponseMessage
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre on artist does not exists."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Genre on artist does not exists."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/artists/{id}/genres/{genreId} [delete]
 func (h *GenreHandler) DeleteArtistGenre(c *fiber.Ctx) error {
@@ -249,8 +249,8 @@ func (h *GenreHandler) DeleteArtistGenre(c *fiber.Ctx) error {
 // @Param 			genreId path int true "Genre ID"
 // @Success 		201 	{object} 	dto.ResponseMessage
 // @Failure 		400		{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre or song does not exists."
-// @Failure 		409		{object} 	dto.ValidationErrorResponse "Conflict: Genre already exists on song."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Genre or song does not exists."
+// @Failure 		409		{object} 	dto.ErrorResponse "Conflict: Genre already exists on song."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/songs/{id}/genres/{genreId} [post]
 func (h *GenreHandler) CreateSongGenre(c *fiber.Ctx) error {
@@ -300,7 +300,7 @@ func (h *GenreHandler) GetSongGenres(c *fiber.Ctx) error {
 // @Param 			id 		path int true "Song ID"
 // @Param 			genreId path int true "Genre ID"
 // @Success 		200 	{object} 	dto.ResponseMessage
-// @Failure 		404		{object} 	dto.ValidationErrorResponse "Not Found: Genre on song does not exists."
+// @Failure 		404		{object} 	dto.ErrorResponse "Not Found: Genre on song does not exists."
 // @Failure 		500 	{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/songs/{id}/genres/{genreId} [delete]
 func (h *GenreHandler) DeleteSongGenre(c *fiber.Ctx) error {

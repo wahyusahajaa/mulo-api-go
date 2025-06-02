@@ -39,7 +39,7 @@ func InitializedApp() (*AppContainer, error) {
 	resendService := resend.NewResendService(configConfig)
 	oAuthService := oauth.NewOauthService(configConfig, logrusLogger)
 	authService := services.NewAuthService(authRepository, userRepository, jwtService, verificationService, resendService, oAuthService, logrusLogger, configConfig)
-	authHandler := handlers.NewAuthHandler(authService, logrusLogger)
+	authHandler := handlers.NewAuthHandler(authService, logrusLogger, jwtService)
 	authMiddleware := middlewares.NewAuthMiddleware(jwtService)
 	userService := services.NewUserService(userRepository, logrusLogger)
 	userHandler := handlers.NewUserHandler(userService, logrusLogger)
@@ -63,7 +63,7 @@ func InitializedApp() (*AppContainer, error) {
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteService, logrusLogger)
 	handlersHandlers := handlers.NewHandlers(authHandler, authMiddleware, userHandler, artistHandler, albumHandler, songHandler, genreHandler, playlistHandler, favoriteHandler)
 	v := middlewares.FiberLogger(logrusLogger)
-	app := routers.ProviderFiberApp(handlersHandlers, v)
+	app := routers.ProviderFiberApp(handlersHandlers, v, configConfig)
 	appContainer := &AppContainer{
 		App:    app,
 		Config: configConfig,

@@ -13,6 +13,7 @@ func FiberLogger(logger *logrus.Logger) fiber.Handler {
 		err := c.Next()
 
 		logger.WithFields(logrus.Fields{
+			"origin":     c.Get("Origin"),
 			"method":     c.Method(),
 			"url":        c.OriginalURL(),
 			"status":     c.Response().StatusCode(),

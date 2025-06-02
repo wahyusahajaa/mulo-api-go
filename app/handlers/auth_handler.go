@@ -2,25 +2,27 @@ package handlers
 
 import (
 	"net/mail"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/contracts"
 	"github.com/wahyusahajaa/mulo-api-go/app/dto"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/errs"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/jwt"
 	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
 type AuthHandler struct {
-	svc contracts.AuthService
-	log *logrus.Logger
+	svc    contracts.AuthService
+	jwtSvc jwt.JWTService
+	log    *logrus.Logger
 }
 
-func NewAuthHandler(svc contracts.AuthService, log *logrus.Logger) *AuthHandler {
+func NewAuthHandler(svc contracts.AuthService, log *logrus.Logger, jwtSvc jwt.JWTService) *AuthHandler {
 	return &AuthHandler{
-		svc: svc,
-		log: log,
+		svc:    svc,
+		log:    log,
+		jwtSvc: jwtSvc,
 	}
 }
 
@@ -30,17 +32,17 @@ func NewAuthHandler(svc contracts.AuthService, log *logrus.Logger) *AuthHandler 
 // @Tags        	auth
 // @Accept 			json
 // @Produce 		json
-// @Param 			register	 body	dto.RegisterRequest true "register object that needs to be created"
+// @Param 			register	 body		dto.RegisterRequest true "register object that needs to be created"
 // @Success 		201 		{object} 	dto.ResponseMessage
 // @Failure 		400			{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		409			{object} 	dto.ValidationErrorResponse "Username or email already exists."
+// @Failure 		409			{object} 	dto.ErrorResponse "Username or email already exists."
 // @Failure 		500 		{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/auth/register [post]
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req dto.RegisterRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -56,22 +58,22 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 // Login			Login user
 // @Summary 		Login user
-// @Description 	Authenticates a user and returns a JWT token if successful.
+// @Description 	Authenticates a user and set cookies JWT token and refresh if successful.
 // @Tags        	auth
 // @Accept 			json
 // @Produce 		json
 // @Param 			login	 	body		dto.LoginRequest true "login object that needs to be created"
-// @Success 		201 		{object} 	dto.ResponseMessage
+// @Success 		200 		{object} 	dto.ResponseMessage
 // @Failure 		400			{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		403			{object} 	dto.ValidationErrorResponse "Account not activated"
-// @Failure 		404			{object} 	dto.ValidationErrorResponse "Invalid email or password"
+// @Failure 		403			{object} 	dto.ErrorResponse "Account not activated"
+// @Failure 		404			{object} 	dto.ErrorResponse "Invalid email or password"
 // @Failure 		500 		{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/auth/login [post]
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req dto.LoginRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -81,20 +83,11 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "auth_handler", "Login", err)
 	}
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		Expires:  expiresAt,
-		HTTPOnly: true,
-		Secure:   true, // set to true if using HTTPS
-		SameSite: "Lax",
-		Path:     "/",
-	})
+	// Set cookie access and refresh token
+	h.jwtSvc.AddTokenCookies(c, accessToken, refreshToken)
 
-	return c.JSON(dto.ResponseWithToken[string, string]{
-		Message:     "Successfully logged in.",
-		AccessToken: accessToken,
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully logged in.",
 	})
 }
 
@@ -107,9 +100,9 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 // @Param 			verify	 	body		dto.VerifyRequest true "verify object that needs to be created"
 // @Success 		200 		{object} 	dto.ResponseMessage
 // @Failure 		400			{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 		404			{object} 	dto.ValidationErrorResponse "Email or Code does not exists."
-// @Failure 		409			{object} 	dto.ValidationErrorResponse "Email is already verified."
-// @Failure 		410			{object} 	dto.ValidationErrorResponse "Code has expired."
+// @Failure 		404			{object} 	dto.ErrorResponse "Email or Code does not exists."
+// @Failure 		409			{object} 	dto.ErrorResponse "Email is already verified."
+// @Failure 		410			{object} 	dto.ErrorResponse "Code has expired."
 // @Failure 		500 		{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 			/auth/verify [post]
 func (h *AuthHandler) Verify(c *fiber.Ctx) error {
@@ -139,15 +132,15 @@ func (h *AuthHandler) Verify(c *fiber.Ctx) error {
 // @Param 				resend	 	body		dto.ResendVerificationRequest true "resend object that needs to be created"
 // @Success 			200 		{object} 	dto.ResponseMessage
 // @Failure 			400			{object} 	dto.ValidationErrorResponse "Invalid request"
-// @Failure 			404			{object} 	dto.ValidationErrorResponse "Email does not exists."
-// @Failure 			409			{object} 	dto.ValidationErrorResponse "Email is already verified."
+// @Failure 			404			{object} 	dto.ErrorResponse "Email does not exists."
+// @Failure 			409			{object} 	dto.ErrorResponse "Email is already verified."
 // @Failure 			500 		{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 				/auth/resend-verification [post]
 func (h *AuthHandler) ResendVerification(c *fiber.Ctx) error {
 	var req dto.ResendVerificationRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -169,14 +162,14 @@ func (h *AuthHandler) ResendVerification(c *fiber.Ctx) error {
 // @Produce 			json
 // @Param 				email 		query 		string true "User email"
 // @Success 			200 		{object} 	dto.ResponseWithData[any]
-// @Failure 			404			{object} 	dto.ValidationErrorResponse "Email does not exists."
+// @Failure 			404			{object} 	dto.ErrorResponse "Email does not exists."
 // @Failure 			500 		{object} 	dto.InternalErrorResponse "Internal server error"
 // @Router 				/auth/verification-status [get]
 func (h *AuthHandler) VerificationStatus(c *fiber.Ctx) error {
 	email := c.Query("email")
 
 	if _, err := mail.ParseAddress(email); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid email format.",
 		})
 	}
@@ -221,14 +214,14 @@ func (h *AuthHandler) AuthMe(c *fiber.Ctx) error {
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  dto.ResponseWithToken[string, string]  	"New access token"
-// @Failure      401  {object}  dto.ResponseError      		 			"Unauthorized"
-// @Failure      500  {object}  dto.ResponseError       				"Internal Server Error"
+// @Success      200  {object}  dto.ResponseMessage  	"Success"
+// @Failure      401  {object}  dto.ErrorResponse		"Unauthorized"
+// @Failure      500  {object}  dto.ErrorResponse		"Internal Server Error"
 // @Router       /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.ErrorResponse{
 			Message: "Missing refresh token.",
 		})
 	}
@@ -238,36 +231,27 @@ func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "auth_handler", "Refresh", err)
 	}
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    newRefreshToken,
-		Expires:  expiresAt,
-		HTTPOnly: true,
-		Secure:   true, // set to true if using HTTPS
-		SameSite: "Lax",
-		Path:     "/",
-	})
+	// Set cookie access and refresh token
+	h.jwtSvc.AddTokenCookies(c, newAccessToken, newRefreshToken)
 
-	return c.JSON(dto.ResponseWithToken[string, string]{
-		Message:     "Refresh token successfully.",
-		AccessToken: newAccessToken,
+	return c.JSON(dto.ResponseMessage{
+		Message: "Refresh token successfully.",
 	})
 }
 
 // @Summary      Logout user
-// @Description  Remove refresh token from cookies and revoke session
+// @Description  Remove access and refresh token from cookies and revoke session
 // @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  dto.ResponseMessage	"Logout successful"
-// @Failure      401  {object}  dto.ResponseError	"Unauthorized"
-// @Failure      500  {object}  dto.ResponseError	"Internal Server Error"
+// @Failure      401  {object}  dto.ErrorResponse	"Unauthorized"
+// @Failure      500  {object}  dto.ErrorResponse	"Internal Server Error"
 // @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusUnauthorized).JSON(dto.ErrorResponse{
 			Message: "Missing refresh token.",
 		})
 	}
@@ -276,16 +260,8 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "auth_handler", "Logout", err)
 	}
 
-	// Hapus cookie refresh token dari browser
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Path:     "/",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "Lax",
-	})
+	// Remove token cookies from browser
+	h.jwtSvc.ClearTokenCookies(c)
 
 	return c.JSON(dto.ResponseMessage{
 		Message: "Successfully logged out.",
@@ -294,23 +270,23 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 
 // GithubCallback handles GitHub OAuth callback.
 // @Summary		OAuth GitHub Callback
-// @Description	Handles the redirect from GitHub after OAuth login/signup and returns a JWT token if successful.
+// @Description	Handles the redirect from GitHub after OAuth login/signup and set cookies JWT token and refresh if successful.
 // @Tags		auth
 // @Accept		json
 // @Produce 	json
 // @Param		oauth		body		dto.GithubReq true "Authorization code received from GitHub redirect."
-// @Success 	200			{object} 	dto.ResponseWithToken[string, string] "Authenticated successfully with GitHub"
-// @Failure		400			{object}	dto.ResponseError "Invalid request or missing code"
-// @Failure		401			{object}	dto.ResponseError "Unauthorized: Bad credentials"
-// @Failure		404			{object}	dto.ResponseError "Not Found: Github user does not exists"
-// @Failure		408			{object}	dto.ResponseError "Time Out: Fetching GitHub email timed out"
-// @Failure		500			{object}	dto.ResponseError "Internal server error"
+// @Success 	200			{object} 	dto.ResponseMessage "Authenticated successfully with GitHub"
+// @Failure		400			{object}	dto.ErrorResponse "Invalid request or missing code"
+// @Failure		401			{object}	dto.ErrorResponse "Unauthorized: Bad credentials"
+// @Failure		404			{object}	dto.ErrorResponse "Not Found: Github user does not exists"
+// @Failure		408			{object}	dto.ErrorResponse "Time Out: Fetching GitHub email timed out"
+// @Failure		500			{object}	dto.ErrorResponse "Internal server error"
 // @Router		/auth/oauth/github/callback [POST]
 func (h *AuthHandler) OAuthGithubCallback(c *fiber.Ctx) error {
 	var req dto.GithubReq
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ResponseError{
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Message: "Invalid body request.",
 		})
 	}
@@ -320,19 +296,43 @@ func (h *AuthHandler) OAuthGithubCallback(c *fiber.Ctx) error {
 		return errs.HandleHTTPError(c, h.log, "auth_handler", "GithubCallback", err)
 	}
 
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		Expires:  expiresAt,
-		HTTPOnly: true,
-		Secure:   true, // set to true if using HTTPS
-		SameSite: "Lax",
-		Path:     "/",
-	})
+	// Set cookie access and refresh token
+	h.jwtSvc.AddTokenCookies(c, accessToken, refreshToken)
 
-	return c.JSON(dto.ResponseWithToken[string, string]{
-		Message:     "Successfully registered with github.",
-		AccessToken: accessToken,
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully registered with github.",
+	})
+}
+
+// OAuthCallback	handles OAuth callback from login/register.
+// @Summary			handles OAuth callback from login/register.
+// @Description		Handles the redirect from OAuth login/signup and set cookies JWT token and refresh if successful.
+// @Tags			auth
+// @Accept			json
+// @Produce 		json
+// @Param			oauth		body		dto.OAuthRequest true "oauth object that needs to be login/register"
+// @Success 		200			{object} 	dto.ResponseMessage "Authenticated successfully with OAuth"
+// @Failure			400			{object}	dto.ErrorResponse "Invalid body request"
+// @Failure			500			{object}	dto.ErrorResponse "Internal server error"
+// @Router			/auth/oauth/callback [POST]
+func (h *AuthHandler) OAuthCallback(c *fiber.Ctx) error {
+	var req dto.OAuthRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
+			Message: "Invalid body request.",
+		})
+	}
+
+	accessToken, refreshToken, err := h.svc.OAuthCallback(c.Context(), req)
+	if err != nil {
+		return errs.HandleHTTPError(c, h.log, "auth_handler", "GithubCallback", err)
+	}
+
+	// Set cookes for access & refresh token
+	h.jwtSvc.AddTokenCookies(c, accessToken, refreshToken)
+
+	return c.JSON(dto.ResponseMessage{
+		Message: "Successfully logged in.",
 	})
 }

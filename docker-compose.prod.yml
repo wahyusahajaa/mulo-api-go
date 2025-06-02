@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 services:
   nginx:
     container_name: mulo-api-nginx
@@ -14,10 +14,10 @@ services:
     depends_on:
       - app
     networks:
-      - mulo-api-prod
+      - mulo-shared-net
   app:
     container_name: mulo-api-prod
-    build: 
+    build:
       context: .
       dockerfile: docker/Dockerfile.prod
     ports:
@@ -28,8 +28,8 @@ services:
     volumes:
       - ./nginx/certs/postgresql-ca.pem:/certs/postgresql-ca.pem:ro
     networks:
-      - mulo-api-prod
+      - mulo-shared-net
 
 networks:
-  mulo-api-prod:
-    driver: bridge
+  mulo-shared-net:
+    external: true

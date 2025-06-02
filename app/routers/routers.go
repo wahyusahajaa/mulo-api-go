@@ -2,22 +2,31 @@ package routers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/swagger"
+	"github.com/wahyusahajaa/mulo-api-go/app/config"
 	"github.com/wahyusahajaa/mulo-api-go/app/handlers"
 	_ "github.com/wahyusahajaa/mulo-api-go/docs"
 )
 
-func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.App {
+func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler, cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "Mulo Music Streaming",
 	})
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.AllowOrigins,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowCredentials: true,
+	}))
 
 	app.Use(fiberLogger)
 
 	v1 := app.Group("/v1")
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Welcome to Mulo")
+		return c.SendString("Welcome to Mulo!")
 	})
 
 	app.Get("/docs/*", swagger.HandlerDefault)
@@ -34,6 +43,7 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 	authGroup.Post("/refresh", h.Auth.Refresh)
 	authGroup.Post("/logout", h.Auth.Logout)
 	authGroup.Post("/oauth/github/callback", h.Auth.OAuthGithubCallback)
+	authGroup.Post("/oauth/callback", h.Auth.OAuthCallback)
 
 	v1Protected := v1.Use(h.Middleware.AuthRequired())
 	v1Protected.Get("auth/me", h.Auth.AuthMe)
@@ -112,5 +122,5 @@ func ProviderFiberApp(h *handlers.Handlers, fiberLogger fiber.Handler) *fiber.Ap
 // @Success      200 {object} string
 // @Router       /ping [get]
 func Ping(c *fiber.Ctx) error {
-	return c.SendString("pong")
+	return c.SendString("pongs")
 }

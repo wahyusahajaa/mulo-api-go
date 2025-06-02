@@ -48,3 +48,12 @@ type GithubEmail struct {
 type GithubReq struct {
 	Code string `json:"code" validate:"required"`
 } //@name GithubReq
+
+type OAuthRequest struct {
+	ProviderID string `json:"provider_id" validate:"required"`
+	Provider   string `json:"provider" validate:"required"`
+	Fullname   string `json:"full_name" validate:"required"`
+	Username   string `json:"username" validate:"required"`
+	Email      string `json:"email" validate:"required,email"`
+	Avatar     string `json:"avatar" validate:"required"`
+} // @name OAuthRequest

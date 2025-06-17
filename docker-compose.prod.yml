@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   # nginx:
   #   container_name: mulo-api-nginx
@@ -27,6 +26,8 @@ services:
       - ./nginx/certs/postgresql-ca.pem:/certs/postgresql-ca.pem:ro
     networks:
       - mulo-shared-net
+    ports:
+      - 8080:8080
 
 networks:
   mulo-shared-net:

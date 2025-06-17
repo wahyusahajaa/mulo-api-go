@@ -25,7 +25,7 @@ func NewJWTService(cfg *config.Config) JWTService {
 	return &jwtService{
 		JwtSecret:           []byte(cfg.JwtSecret),
 		RefreshSecret:       []byte(cfg.RefreshSecret),
-		AccessTokenExpires:  1 * time.Minute,
+		AccessTokenExpires:  15 * time.Minute,
 		RefreshTokenExpires: 7 * 24 * time.Hour,
 	}
 }

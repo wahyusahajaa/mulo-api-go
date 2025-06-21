@@ -1,6 +1,5 @@
 {
     "schemes": [
-        "http",
         "https"
     ],
     "swagger": "2.0",
@@ -13,7 +12,7 @@
         },
         "version": "1.0"
     },
-    "host": "api.mulo.site",
+    "host": "api.mulo.craftedfolio.my.id",
     "basePath": "/v1",
     "paths": {
         "/albums": {

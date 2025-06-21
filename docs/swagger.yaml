@@ -376,7 +376,7 @@ definitions:
     - code
     - email
     type: object
-host: api.mulo.site
+host: api.mulo.craftedfolio.my.id
 info:
   contact:
     email: wahyusahaja.official@gmail.com
@@ -2245,7 +2245,6 @@ paths:
       tags:
       - users
 schemes:
-- http
 - https
 securityDefinitions:
   BearerAuth:

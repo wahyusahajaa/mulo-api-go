@@ -11,9 +11,9 @@ import (
 // @description This documentation for access Mulo Music Streaming
 // @contact.name The Developer
 // @contact.email wahyusahaja.official@gmail.com
-// @host api.mulo.site
+// @host api.mulo.craftedfolio.my.id
 // @BasePath /v1
-// @schemes http https
+// @schemes https
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization

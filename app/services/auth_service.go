@@ -103,7 +103,7 @@ func (svc *authService) Register(ctx context.Context, req dto.RegisterRequest) (
 	}
 
 	// Send email code verification
-	// go svc.resendSvc.SendEmailVerificationCode(req.Email, code)
+	go svc.resendSvc.SendEmailVerificationCode(req.Email, code)
 
 	return
 }
@@ -253,7 +253,7 @@ func (svc *authService) ResendVerification(ctx context.Context, req dto.ResendVe
 	}
 
 	// Send email verification
-	// go svc.resendSvc.SendEmailVerificationCode(req.Email, code)
+	go svc.resendSvc.SendEmailVerificationCode(req.Email, code)
 
 	return
 }

@@ -1,19 +1,23 @@
 package resend
 
 import (
-	"log"
+	"context"
 
 	resendlib "github.com/resend/resend-go/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/wahyusahajaa/mulo-api-go/app/config"
+	"github.com/wahyusahajaa/mulo-api-go/pkg/utils"
 )
 
 type resendService struct {
 	secret string
+	log    *logrus.Logger
 }
 
-func NewResendService(cfg *config.Config) ResendService {
+func NewResendService(cfg *config.Config, log *logrus.Logger) ResendService {
 	return &resendService{
 		secret: cfg.ResendKey,
+		log:    log,
 	}
 }
 
@@ -28,7 +32,7 @@ func (r *resendService) SendEmailVerificationCode(sendTo, code string) {
 	}
 
 	if _, err := client.Emails.Send(params); err != nil {
-		log.Printf("Resend code err: %v", err)
+		utils.LogError(r.log, context.Background(), "resend_service", "SendEmailVerificationCode", err)
 		return
 	}
 }

@@ -36,7 +36,7 @@ func InitializedApp() (*AppContainer, error) {
 	userRepository := repositories.NewUserRepository(db, logrusLogger)
 	jwtService := jwt.NewJWTService(configConfig)
 	verificationService := verification.NewVerificationService(userRepository)
-	resendService := resend.NewResendService(configConfig)
+	resendService := resend.NewResendService(configConfig, logrusLogger)
 	oAuthService := oauth.NewOauthService(configConfig, logrusLogger)
 	authService := services.NewAuthService(authRepository, userRepository, jwtService, verificationService, resendService, oAuthService, logrusLogger, configConfig)
 	authHandler := handlers.NewAuthHandler(authService, logrusLogger, jwtService)
